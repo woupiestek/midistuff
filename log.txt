@@ -1,0 +1,96 @@
+MIDI log:
+
+--- 7/6/16 ---
+
+Doe iets met simpele bewerkingen van sequences
+
+-> stukjes opslaan en meerdere keren gebruiken
+-> channels wijzigen
+-> tempo, transpositie, volume
+-> afgeleiden van de bovenstaande.
+
+
+--- 5/6/16 ---
+
+list of functions tht may call each other:
+
+f(X,Y,Z) := M.
+midi := N.
+
+wat zijn expressies dan?
+
+-> numbers
+-> strings
+-> 'arrays'
+-> application
+-> arihtmeticals
+
+Laat dit even rusten
+
+* sequences
+* actors
+
+
+lisply
+
+(L => L* => L) => L => L* => L
+(L => P) => L => P
+
+(\ x M)
+
+als de lijst met argumenten leeg is, laat dan leeg.
+
+(fold ... ...)
+
+--- 4/6/16 ---
+
+lexer -> parser -> sequencer
+
+
+base structure: 
+
+* numbers
+* sequences
+* that is it.
+
+list of note, rest and poly where poly is a list of parallel sequences.
+
+'type S'
+
+note, rest poly etc all base type S
+
+numbers (preferably lots of arithmetic)
+
+Implement as 'sequence monad': produce midi as side efffect.
+
+idee: als de ariteit van een functie vastligt, dan kan de parser daar rekening mee houden.
+als die ariteit niet vastligt, moet iets anders het verhelderen.
+
+Ik weet nu dus niet of ik vast kan houden aan de notatie die ik voor sequences heb bedacht.
+Misschien heb ik toch niet nodig om bijvoorbeeld noten te begrensen.
+
+Het idee is dus om een eenvoudige functionele taal te implementeren die midi genereerd.
+Die eenvoudige taal word toch al wel heel lastig.
+
+
+Alleen functies van getallen???
+
+# Scoping
+  Geef elke functie een eigen scope/ frame. Daar kopieer je de variabelen naar toe. 
+  
+(:= f Pattern Expression Expression).
+
+--- eerder ---
+relevant: één instrument per kanaal!
+
+Zo doe je dat:
+sequencer.setSequence(sequence);
+        sequencer.start();
+        
+Stick with what you know...
+
+\x
+MN
+
+
+
