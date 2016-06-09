@@ -1,6 +1,6 @@
 package nl.woupiestek.midi.extended
 
-import javax.sound.midi.{ShortMessage, Track}
+import javax.sound.midi.{Sequence, ShortMessage, Track}
 
 case class EventGenerator(start: Int, heap: Map[String, ESequence], track: Track) {
   def process(eSequence: ESequence): EventGenerator = eSequence match {
@@ -21,6 +21,14 @@ case class EventGenerator(start: Int, heap: Map[String, ESequence], track: Track
       val stops = eseqs.map(eseq => process(eseq).start)
       copy(start = (start :: stops).max)
     case ESequence.Get(key: String) => process(heap(key))
+  }
+}
+
+object EventGenerator {
+  def toMidi(eSequence: ESequence):Sequence = {
+    val s = new Sequence(Sequence.PPQ,4)
+    EventGenerator(0,Map.empty,s.createTrack())
+    s
   }
 }
 
