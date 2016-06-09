@@ -1,7 +1,5 @@
 package nl.woupiestek.midi.extended
 
-import javax.sound.midi.Sequence
-
 trait ESequence
 
 case class Elements(elements: List[ESequence.Element]) extends ESequence
