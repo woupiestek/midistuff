@@ -2,10 +2,10 @@ package nl.woupiestek.midi.extended
 
 import javax.sound.midi.{Sequence, ShortMessage, Track}
 
-case class EventGenerator(start: Int, heap: Map[String, ESequence], track: Track) {
+final case class EventGenerator(start: Int, heap: Map[String, ESequence], track: Track) {
   def process(eSequence: ESequence): EventGenerator = eSequence match {
     case Elements(elements) => elements.foldLeft(this) { case (state, element) => state.process(element) }
-    case Put(value, key, context) => copy(heap = heap + (key -> value))
+    case Put(value, key, context) => copy(heap = heap + (key -> value)).process(context)
   }
 
   def process(element: ESequence.Element): EventGenerator = element match {

@@ -73,6 +73,7 @@ object Main extends App {
         None
       case Some(eSequence) =>
         println("parsing succeeded")
+        println(eSequence)
         Some(EventGenerator.toMidi(eSequence))
     }
   }

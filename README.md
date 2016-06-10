@@ -1,0 +1,1 @@
+This project contains experiments with generating midi sequences.
