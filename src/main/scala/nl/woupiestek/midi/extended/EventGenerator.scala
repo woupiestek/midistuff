@@ -25,9 +25,9 @@ case class EventGenerator(start: Int, heap: Map[String, ESequence], track: Track
 }
 
 object EventGenerator {
-  def toMidi(eSequence: ESequence):Sequence = {
-    val s = new Sequence(Sequence.PPQ,4)
-    EventGenerator(0,Map.empty,s.createTrack())
+  def toMidi(eSequence: ESequence): Sequence = {
+    val s = new Sequence(Sequence.PPQ, 4)
+    EventGenerator(0, Map.empty, s.createTrack()).process(eSequence)
     s
   }
 }

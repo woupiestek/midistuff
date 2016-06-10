@@ -3,6 +3,7 @@ package nl.woupiestek.midi
 import javax.sound.midi._
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.event.Logging
 import nl.woupiestek.midi.extended.{EventGenerator, SequencerActor}
 
 import scala.concurrent.Await
@@ -11,13 +12,13 @@ import scala.io.{Source, StdIn}
 import scala.util.Random
 
 object Main extends App {
-
   val actorSystem = ActorSystem("midiPlayer")
-  val sequencerActor = actorSystem.actorOf(Props[SequencerActor])
+  val logger = Logging.getLogger(actorSystem, this)
+  val sequencerActor = actorSystem.actorOf(Props(classOf[SequencerActor], MidiSystem.getSequencer))
 
   for (arg <- args) playFile2(arg, sequencerActor)
 
-  randomTestSounds(3)
+  //randomTestSounds(3)
 
   //actors
   //comments
@@ -49,9 +50,9 @@ object Main extends App {
 
   def playFile(name: String) = {
     val input = Source.fromFile(name).getLines().mkString("\n")
-    println(input)
+    logger.info(input)
     StringParser.parse(input, NotesAndRestsGrammar.grammar) match {
-      case None => println("parsing failed")
+      case None => logger.info("parsing failed")
       case Some(score) =>
         new OtherSynthesizerWrapper(MidiSystem.getSynthesizer).play(score, 100l)
     }
@@ -59,15 +60,17 @@ object Main extends App {
 
   def playFile2(name: String, sequencerActorRef: ActorRef): Unit = {
     val input = Source.fromFile(name).getLines().mkString("\n")
-    println("parsing...")
+    logger.info("parsing...")
     StringParser.parse(input, extended.EGrammar.sequence) match {
-      case None => println("parsing failed")
+      case None => logger.info("parsing failed")
       case Some(eSequence) =>
-        println("parsing succeeded")
-        sequencerActorRef ! EventGenerator.toMidi(eSequence)
+        logger.info("parsing succeeded")
+        val s = EventGenerator.toMidi(eSequence)
+        sequencerActorRef ! s
     }
   }
 
   StdIn.readLine("Press enter to quit.")
-  Await.ready(actorSystem.terminate(),Duration(10,SECONDS))
+
+  Await.ready(actorSystem.terminate(), Duration(10, SECONDS))
 }

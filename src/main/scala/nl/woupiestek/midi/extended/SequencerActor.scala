@@ -1,72 +1,59 @@
 package nl.woupiestek.midi.extended
 
-import javax.sound.midi.{MetaEventListener, MetaMessage, MidiSystem, Sequence}
+import javax.sound.midi._
 
 import akka.actor.Actor
+import akka.event.Logging
 
 
-class SequencerActor extends Actor {
+class SequencerActor(sequencer: Sequencer) extends Actor {
 
-  val sequencer = MidiSystem.getSequencer
+  import SequencerActor._
 
-  //a queue implementation
-  class Queue() {
-    var in: List[Sequence] = Nil
-    var out: List[Sequence] = Nil
+  val logger = Logging.getLogger(context.system, this)
 
-    def dequeue(): Option[Sequence] = out match {
-      case head :: tail =>
-        out = tail
-        Some(head)
-      case Nil =>
-        in.reverse match {
-          case head :: tail =>
-            in = Nil
-            out = tail
-            Some(head)
-          case Nil => None
-        }
-    }
-
-    def enqueue(sequence: Sequence): Unit = in = sequence :: in
-  }
-
-  val queue = new Queue()
-
-  import SequencerActor.Next
-
-  sequencer.addMetaEventListener(new MetaEventListener {
-    override def meta(meta: MetaMessage): Unit = {
-      if (meta.getType == 47) {
-        println("done playing")
-        self ! SequencerActor.Next
-      }
-    }
-  })
+  var q = new Q()
 
   override def receive: Receive = {
     case sequence: Sequence =>
-      println(s"$self received sequence")
-      queue.enqueue(sequence)
+      logger.info(s"received sequence")
+      q = q.append(sequence)
       if (!sequencer.isRunning) {
-        if (!sequencer.isOpen) {
-          sequencer.open()
-        }
         self ! Next
       }
-    case Next =>
-      queue.dequeue() match {
-        case None => sequencer.close()
-        case Some(sequence) =>
-          println(s"$self playing")
-          sequencer.setSequence(sequence)
-          sequencer.start()
+    case Next => q = q.unfold match {
+      case None =>
+        sequencer.close()
+        new Q()
+      case Some((s, q2)) => if (sequencer.isRunning) {
+        logger.info("running")
+        Thread.sleep(100)
+        self ! Next
+        q
+      } else {
+        sequencer.setSequence(s)
+        if (!sequencer.isOpen) sequencer.open()
+        sequencer.start()
+        q2
       }
+    }
   }
 }
 
 
 object SequencerActor {
+
+  class Q(in: List[Sequence] = Nil, out: List[Sequence] = Nil) {
+    def append(s: Sequence): Q = new Q(s :: in, out)
+
+    lazy val unfold: Option[(Sequence, Q)] = out match {
+      case h :: t => Some((h, new Q(in, out)))
+      case Nil => in.reverse match {
+        case h :: t => Some((h, new Q(Nil, t)))
+        case Nil => None
+      }
+    }
+  }
 
   object Next
 
