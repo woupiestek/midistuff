@@ -21,21 +21,17 @@ class SequencerActor(sequencer: Sequencer) extends Actor {
       if (!sequencer.isRunning) {
         self ! Next
       }
-    case Next => q = q.unfold match {
+    case Next => q.unfold match {
       case None =>
         sequencer.close()
-        new Q()
-      case Some((s, q2)) => if (sequencer.isRunning) {
-        logger.info("running")
-        Thread.sleep(100)
-        self ! Next
-        q
-      } else {
+        q = new Q()
+      case Some((s, q2)) =>
         sequencer.setSequence(s)
         if (!sequencer.isOpen) sequencer.open()
         sequencer.start()
-        q2
-      }
+        q = q2
+        Thread.sleep(s.getMicrosecondLength / 1000L)
+        self ! Next
     }
   }
 }
