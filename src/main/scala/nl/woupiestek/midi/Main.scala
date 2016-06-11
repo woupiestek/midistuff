@@ -42,17 +42,7 @@ object Main extends App {
     }
   }
 
-  def playFile2(name: String, sequencerActorRef: ActorRef): Unit = {
-    val input = Source.fromFile(name).getLines().mkString("\n")
-    println("parsing...")
-    StringParser.parse(input, extended.EGrammar.sequence) match {
-      case None => println("parsing failed")
-      case Some(eSequence) =>
-        println("parsing succeeded")
-        val s = EventGenerator.toMidi(eSequence)
-        sequencerActorRef ! s
-    }
-  }
+  def playFile2(name: String, sequencerActorRef: ActorRef): Unit = load(name).foreach(sequencerActorRef ! _)
 
   def load(name: String): Option[Sequence] = {
     val input = Source.fromFile(name).getLines().mkString("\n")

@@ -9,6 +9,9 @@ object EGrammar {
   def sequence: G[ESequence] = {
 
     def element: G[ESequence.Element] = {
+      def number: G[Int] = spaced(Grammar.read[Option[Char]].collect[Char] {
+        case Some(n) if ('0' to '9').contains(n) => n
+      }.oneOrMore).map(_.mkString.toInt)
 
       def note: G[ESequence.Note] = for {
         _ <- spaced(char('n'))
@@ -54,10 +57,6 @@ object EGrammar {
     def identifier: G[String] = spaced(Grammar.read[Option[Char]].collect[Char] {
       case Some(char) if ('A' to 'Z').union('a' to 'z').contains(char) => char
     }.oneOrMore).map(_.mkString)
-
-    def number: G[Int] = spaced(Grammar.read[Option[Char]].collect[Char] {
-      case Some(n) if ('0' to '9').contains(n) => n
-    }.oneOrMore).map(_.mkString.toInt)
 
     def spaced[T](g: G[T]): G[T] = {
       def space = Grammar.read[Option[Char]].collect {

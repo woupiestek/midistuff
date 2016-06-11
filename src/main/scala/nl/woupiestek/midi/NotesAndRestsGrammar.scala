@@ -6,15 +6,14 @@ object NotesAndRestsGrammar {
 
   type G[T] = Grammar[Option[Char], T]
 
-  case class Temp(length: Int, events: List[(Int, MidiMessage)]) {
-    def append(t: Temp): Temp = Temp(length + t.length, events ++ t.events.map { case (x, y) => (x + length, y) })
+  case class Track(length: Int, events: List[(Int, MidiMessage)]) {
+    def append(t: Track): Track = Track(length + t.length, events ++ t.events.map { case (x, y) => (x + length, y) })
 
-    def stack(t: Temp): Temp = Temp(math.max(length, t.length), events ++ t.events)
+    def stack(t: Track): Track = Track(math.max(length, t.length), events ++ t.events)
   }
 
   def grammar: G[List[(Int, MidiMessage)]] = {
-    def sequence: G[Temp] = {
-
+    def sequence: G[Track] = {
       def capture: G[Char] = for {
         Some(x) <- Grammar.read[Option[Char]]
       } yield x
@@ -32,36 +31,30 @@ object NotesAndRestsGrammar {
         _ <- whitespace
       } yield (x :: y).mkString.toInt
 
-      def note: G[Temp] = for {
+      def note: G[Track] = for {
         - <- char('n')
         pitch <- number
         length <- number
-      } yield Temp(length, (0, NoteOn(0, pitch, 64)) ::(length, NoteOff(0, pitch)) :: Nil)
+      } yield Track(length, (0, NoteOn(0, pitch, 64)) ::(length, NoteOff(0, pitch)) :: Nil)
 
-      def rest: G[Temp] = for {
+      def rest: G[Track] = for {
         _ <- char('r')
         length <- number
-      } yield Temp(length, Nil)
+      } yield Track(length, Nil)
 
-      val emptyTemp: Temp = Temp(0, Nil)
+      val empty: Track = Track(0, Nil)
 
-      def poly: G[Temp] = {
-        def charSeparatedList[T](g: G[T], separator: Char): G[List[T]] = for {
-          x <- g
-          y <- (for {
-            _ <- char(separator)
-            z <- g
-          } yield z).zeroOrMore
-        } yield x :: y
+      def poly: G[Track] = for {
+        _ <- char('[')
+        x <- sequence
+        y <- (for {
+          _ <- char('|')
+          z <- sequence
+        } yield z).zeroOrMore
+        _ <- char(']')
+      } yield (x :: y).foldLeft(empty)(_ stack _)
 
-        for {
-          _ <- char('[')
-          x <- charSeparatedList(sequence, '|')
-          _ <- char(']')
-        } yield x.foldLeft(emptyTemp)(_ stack _)
-      }
-
-      for (nors <- (note | rest | poly).zeroOrMore) yield nors.foldLeft(emptyTemp)(_ append _)
+      for (nors <- (note | rest | poly).zeroOrMore) yield nors.foldLeft(empty)(_ append _)
     }
 
     sequence.map(_.events.sortBy { case (t, _) => t })
