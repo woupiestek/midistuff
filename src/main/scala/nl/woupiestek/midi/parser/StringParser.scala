@@ -1,6 +1,4 @@
-package nl.woupiestek.midi
-
-import nl.woupiestek.midi.parser.Grammar
+package nl.woupiestek.midi.parser
 
 import scala.annotation.tailrec
 import scalaz.{-\/, \/, \/-}

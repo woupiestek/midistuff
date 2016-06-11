@@ -4,7 +4,7 @@ import javax.sound.midi._
 
 class OtherSynthesizerWrapper(synthesizer: Synthesizer) {
 
-  def play(score: List[(Int, MidiEvent)], tick: Long): Unit = {
+  def play(score: List[(Int, MidiMessage)], tick: Long): Unit = {
     val channels = synthesizer.getChannels
     synthesizer.open()
     val ctm = System.currentTimeMillis()

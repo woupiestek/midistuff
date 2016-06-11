@@ -4,35 +4,25 @@ import javax.sound.midi._
 
 import akka.actor.ActorRef
 import nl.woupiestek.midi.extended.EventGenerator
+import nl.woupiestek.midi.parser.StringParser
 
 import scala.io.Source
 import scala.util.Random
 
 object Main extends App {
-  val sequencer = MidiSystem.getSequencer()
-  sequencer.open()
-  for (Some(sequence) <- args.map(load)) {
-    sequencer.setSequence(sequence)
-    sequencer.start()
-    println(sequence.getMicrosecondLength)
-    Thread.sleep(sequence.getMicrosecondLength / 1000L)
-    sequencer.stop()
-  }
-  sequencer.close()
+  playSequences(MidiSystem.getSequencer, args.flatMap(load))
 
   def randomTestSounds(count: Int): Unit = {
     val random = new Random()
 
-    val program = for (i <- 0 to 15) yield {
-      Track.track(0, SetProgram(i, random.nextInt(128)))
-    }
+    val program = for (i <- 0 to 15) yield (0, SetProgram(i, random.nextInt(128)))
 
-    def randomNote: List[Track] = {
+    def randomNote: List[(Int, MidiMessage)] = {
       val channel = random.nextInt(16)
       val pitch = 48 + random.nextInt(32)
       val start = 100 * random.nextInt(99)
       val end = start + 250 * (1 << random.nextInt(4))
-      List(Track.track(start, NoteOn(channel, pitch, 60)), Track.track(end, NoteOff(channel, pitch)))
+      List((start, NoteOn(channel, pitch, 60)), (end, NoteOff(channel, pitch)))
     }
 
     val sequence = program.toList ++ (for {
@@ -40,7 +30,7 @@ object Main extends App {
       track <- randomNote
     } yield track)
 
-    new SimpleSynthesizerWrapper(MidiSystem.getSynthesizer).play(sequence)
+    new OtherSynthesizerWrapper(MidiSystem.getSynthesizer).play(sequence, 100l)
   }
 
   def playFile(name: String) = {
@@ -48,8 +38,7 @@ object Main extends App {
     println(input)
     StringParser.parse(input, NotesAndRestsGrammar.grammar) match {
       case None => println("parsing failed")
-      case Some(score) =>
-        new OtherSynthesizerWrapper(MidiSystem.getSynthesizer).play(score, 100l)
+      case Some(score) => new OtherSynthesizerWrapper(MidiSystem.getSynthesizer).play(score, 100l)
     }
   }
 
@@ -69,12 +58,23 @@ object Main extends App {
     val input = Source.fromFile(name).getLines().mkString("\n")
     StringParser.parse(input, extended.EGrammar.sequence) match {
       case None =>
-        println("parsing failed")
+        println(s"parsing $name failed")
         None
       case Some(eSequence) =>
-        println("parsing succeeded")
+        println(s"parsing $name succeeded")
         println(eSequence)
         Some(EventGenerator.toMidi(eSequence))
     }
+  }
+
+  def playSequences(sequencer: Sequencer, sequences: Seq[Sequence]): Unit = {
+    sequencer.open()
+    for (sequence <- sequences) {
+      sequencer.setSequence(sequence)
+      sequencer.start()
+      Thread.sleep(sequence.getMicrosecondLength / 1000L)
+      sequencer.stop()
+    }
+    sequencer.close()
   }
 }
