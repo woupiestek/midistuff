@@ -5,7 +5,7 @@ trait ESequence
 case class Elements(elements: List[ESequence.Element]) extends ESequence
 
 //{S}=x.S
-case class Put(value: ESequence, identifier: String, context: ESequence) extends ESequence
+case class Put(value: ESequence, key: String, context: ESequence) extends ESequence
 
 object ESequence {
 

@@ -1,5 +1,25 @@
 MIDI log:
+--- 12/6/16 ---
 
+track -> track
+
+qua velocity:
+ -> ... = %velocity. track
+ -> ... = %gain. track
+ -> ( cresc start stop { track } )
+
+qua key:
+ -> ... = %transposition. track
+
+qua channel?
+ -> ... = %channel. track
+
+qua tempo?
+ -> ... = %tempo. track
+ -> ( acc start stop {track} ) ?
+verschil tussen sequence tempo en track tempo
+ 
+ 
 --- 7/6/16 ---
 
 Doe iets met simpele bewerkingen van sequences
