@@ -41,52 +41,45 @@ object LGrammar {
         case _ => Grammar.fail
       }
 
-      def separator: G[Unit] = for {
-        _ <- space
-        _ <- comment.zeroOrMore
-      } yield ()
-
-      def space: G[Unit] = Grammar.read[Option[Char]].collect {
-        case Some(c) if Set(' ', '\n', '\r', '\t', '\f').contains(c) => c
-      }.zeroOrMore.map(_ => ())
-
-      def comment: G[String] = {
-        def lineSep(x: Char): Boolean = x == '\n' || x == '\r'
-        for {
-          Some(';') <- Grammar.read[Option[Char]]
-          x <- Grammar.read[Option[Char]].collect {
-            case Some(x) if !lineSep(x) => x
-          }.zeroOrMore
-          Some(y) <- Grammar.read[Option[Char]] if lineSep(y)
-          _ <- space
-        } yield x.mkString
-      }
-
-      def natural: G[Int] = select(('0' to '9').contains).map(_.toInt)
-
-      def select(f: Char => Boolean): G[String] = for {
-        x <- Grammar.read[Option[Char]].collect { case Some(c) if f(c) => c }.oneOrMore
-        _ <- separator
-      } yield x.mkString
-
-      def number: G[Int] = natural | (for {
-        Some('-') <- Grammar.read[Option[Char]]
-        n <- natural
-      } yield -n)
-
-      def method: G[String] = select(('a' to 'z').contains)
-
-      def identifier: G[String] = select(('<' to '~').contains)
-
       for {
-        Some('(') <- Grammar.read[Option[Char]]
+        '(' <- capture
         _ <- separator
         name <- method
         t <- args(name)
-        Some(')') <- Grammar.read[Option[Char]]
+        ')' <- capture
         _ <- separator
       } yield t
     }
   }
 
+  def capture = Grammar.read[Option[Char]].collect { case Some(c) => c }
+
+  //remove whitespace and comments
+  def separator: G[Unit] = for {
+    x <- capture
+    _ <- if (Set(' ', '\n', '\r', '\t', '\f').contains(x)) separator else if (';' == x) comment else Grammar.point(())
+  } yield ()
+
+  def comment: G[Unit] = for {
+    x <- capture
+    _ <- if (Set('\n', '\r').contains(x)) separator else comment
+  } yield ()
+
+  def natural: G[Int] = select(('0' to '9').contains).map(_.toInt)
+
+  def select(f: Char => Boolean): G[String] = for {
+    x <- capture.filter(f).oneOrMore
+    _ <- separator
+  } yield x.mkString
+
+  def number: G[Int] = natural | (for {
+    Some('-') <- Grammar.read[Option[Char]]
+    n <- natural
+  } yield -n)
+
+  def method: G[String] = select(('a' to 'z').contains)
+
+  private val reserved = Set('(', ')', ';', ' ', '\n', '\r', '\t', '\f')
+
+  def identifier: G[String] = select(!reserved.contains(_))
 }
