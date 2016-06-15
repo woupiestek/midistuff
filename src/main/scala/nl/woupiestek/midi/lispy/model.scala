@@ -34,6 +34,6 @@ case class Track(duration: Int, events: List[(Int, Message)]) {
 }
 
 object Track {
-  def empty = Track(0,Nil)
+  def empty = Track(0, Nil)
 }
 

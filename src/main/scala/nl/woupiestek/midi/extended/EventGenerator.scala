@@ -2,6 +2,11 @@ package nl.woupiestek.midi.extended
 
 import javax.sound.midi.{Sequence, ShortMessage, Track}
 
+import nl.woupiestek.midi.extended
+import nl.woupiestek.midi.parser.StringParser
+
+import scala.io.Source
+
 final case class EventGenerator(start: Int, heap: Map[String, ESequence], track: Track) {
   def process(eSequence: ESequence): EventGenerator = eSequence match {
     case Elements(elements) => elements.foldLeft(this) { case (state, element) => state.process(element) }
@@ -25,6 +30,20 @@ final case class EventGenerator(start: Int, heap: Map[String, ESequence], track:
 }
 
 object EventGenerator {
+
+  def load(name: String): Option[Sequence] = {
+    val input = Source.fromFile(name).getLines().mkString("\n")
+    StringParser.parse(input, extended.EGrammar.sequence) match {
+      case None =>
+        println(s"parsing $name failed")
+        None
+      case Some(eSequence) =>
+        println(s"parsing $name succeeded")
+        println(eSequence)
+        Some(toMidi(eSequence))
+    }
+  }
+
   def toMidi(eSequence: ESequence): Sequence = {
     val s = new Sequence(Sequence.PPQ, 4)
     EventGenerator(0, Map.empty, s.createTrack()).process(eSequence)

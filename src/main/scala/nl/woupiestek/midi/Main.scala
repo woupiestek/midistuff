@@ -4,13 +4,14 @@ import javax.sound.midi._
 
 import akka.actor.ActorRef
 import nl.woupiestek.midi.extended.EventGenerator
+import nl.woupiestek.midi.lispy.Loader
 import nl.woupiestek.midi.parser.StringParser
 
 import scala.io.Source
 import scala.util.Random
 
 object Main extends App {
-  playSequences(MidiSystem.getSequencer, args.flatMap(load))
+  playSequences(MidiSystem.getSequencer, args.flatMap(Loader.load))
 
   def randomTestSounds(count: Int): Unit = {
     val random = new Random()
@@ -42,20 +43,8 @@ object Main extends App {
     }
   }
 
-  def playFile2(name: String, sequencerActorRef: ActorRef): Unit = load(name).foreach(sequencerActorRef ! _)
-
-  def load(name: String): Option[Sequence] = {
-    val input = Source.fromFile(name).getLines().mkString("\n")
-    StringParser.parse(input, extended.EGrammar.sequence) match {
-      case None =>
-        println(s"parsing $name failed")
-        None
-      case Some(eSequence) =>
-        println(s"parsing $name succeeded")
-        println(eSequence)
-        Some(EventGenerator.toMidi(eSequence))
-    }
-  }
+  def playFile2(name: String, sequencerActorRef: ActorRef): Unit =
+    EventGenerator.load(name).foreach(sequencerActorRef ! _)
 
   def playSequences(sequencer: Sequencer, sequences: Seq[Sequence]): Unit = {
     sequencer.open()

@@ -6,6 +6,11 @@ object LGrammar {
 
   type G[T] = Grammar[Option[Char], T]
 
+  def file: G[Track] = for {
+    _ <- separator
+    x <- new Context(Map.empty).track
+  } yield x
+
   class Context(entries: Map[String, Track]) {
     def track: G[Track] = {
       def args(name: String): G[Track] = name match {
@@ -14,8 +19,8 @@ object LGrammar {
           duration <- natural
         } yield Track(duration, List((0, NoteOn(0, key, 60)), (duration, NoteOff(0, key))))
         case "rest" => number.map(d => Track(d, Nil))
-        case "seq" => track.zeroOrOne.map(_.foldLeft(Track.empty)(_ append _))
-        case "chord" => track.zeroOrOne.map(_.foldLeft(Track.empty)(_ stack _))
+        case "seq" => track.zeroOrMore.map(_.foldLeft(Track.empty)(_ append _))
+        case "chord" => track.zeroOrMore.map(_.foldLeft(Track.empty)(_ stack _))
         case "pui" => for {
           x <- number
           y <- track
@@ -32,6 +37,10 @@ object LGrammar {
           x <- natural
           y <- track
         } yield y toChannel x
+        case "repeat" => for {
+          x <- natural
+          y <- track
+        } yield (1 to x).map(_ => y).foldLeft(Track.empty)(_ append _)
         case "put" => for {
           x <- identifier
           y <- track
@@ -55,10 +64,10 @@ object LGrammar {
   def capture = Grammar.read[Option[Char]].collect { case Some(c) => c }
 
   //remove whitespace and comments
-  def separator: G[Unit] = for {
+  def separator: G[Unit] = (for {
     x <- capture
-    _ <- if (Set(' ', '\n', '\r', '\t', '\f').contains(x)) separator else if (';' == x) comment else Grammar.point(())
-  } yield ()
+    _ <- if (Set(' ', '\n', '\r', '\t', '\f').contains(x)) separator else if (';' == x) comment else Grammar.fail
+  } yield ()) | Grammar.point(())
 
   def comment: G[Unit] = for {
     x <- capture
