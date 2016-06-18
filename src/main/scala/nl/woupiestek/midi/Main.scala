@@ -11,7 +11,7 @@ import scala.io.Source
 import scala.util.Random
 
 object Main extends App {
-  playSequences(MidiSystem.getSequencer, args.flatMap(Loader.load))
+  playSequences(MidiSystem.getSequencer)(args.flatMap(Loader.load))
 
   def randomTestSounds(count: Int): Unit = {
     val random = new Random()
@@ -46,7 +46,7 @@ object Main extends App {
   def playFile2(name: String, sequencerActorRef: ActorRef): Unit =
     EventGenerator.load(name).foreach(sequencerActorRef ! _)
 
-  def playSequences(sequencer: Sequencer, sequences: Seq[Sequence]): Unit = {
+  def playSequences(sequencer: Sequencer)(sequences: Seq[Sequence]): Unit = {
     sequencer.open()
     for (sequence <- sequences) {
       sequencer.setSequence(sequence)
