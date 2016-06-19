@@ -6,6 +6,8 @@ case class NoteOn(channel: Int = 0, key: Int, velocity: Int = 60) extends Messag
 
 case class NoteOff(channel: Int = 0, key: Int) extends Message
 
+case class ProgramChange(channel: Int = 0, program: Int) extends Message
+
 case class Track(duration: Int, events: List[(Int, Message)]) {
   def append(track: Track) =
     Track(duration + track.duration, events ++ track.events.map { case (t, m) => (t + duration, m) })

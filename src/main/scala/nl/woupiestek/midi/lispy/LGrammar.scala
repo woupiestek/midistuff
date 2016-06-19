@@ -12,10 +12,18 @@ object LGrammar {
   } yield x
 
   class Context(entries: Map[String, Track]) {
-    def scalar(f: (Track, Int) => Track) = for {
+    def scalar(f: (Track, Int) => Track): G[Track] = for {
       x <- number
       y <- track
     } yield f(y, x)
+
+    def trackListFold(f: (Track, Track) => Track): G[Track] = for {
+      '[' <- capture
+      _ <- separator
+      ts <- track.oneOrMore
+      ']' <- capture
+      _ <- separator
+    } yield ts.foldLeft(Track.empty)(f)
 
     val argumentParsers: Map[String, G[Track]] = Map(
       "note" -> (for {
@@ -23,8 +31,9 @@ object LGrammar {
         duration <- natural
       } yield Track(duration, List((0, NoteOn(0, key, 60)), (duration, NoteOff(0, key))))),
       "rest" -> number.map(d => Track(d, Nil)),
-      "seq" -> track.zeroOrMore.map(_.foldLeft(Track.empty)(_ append _)),
-      "chord" -> track.zeroOrMore.map(_.foldLeft(Track.empty)(_ stack _)),
+      "patch" -> number.map(p => Track(0, List((0, ProgramChange(0, p))))),
+      "seq" -> trackListFold(_ append _),
+      "chord" -> trackListFold(_ stack _),
       "pui" -> scalar(_ piu _),
       "cresc" -> scalar(_ cresc _),
       "transpose" -> scalar(_ transpose _),
@@ -38,14 +47,9 @@ object LGrammar {
       "get" -> identifier.collect(entries))
 
     def track: G[Track] = for {
-      '(' <- capture
-      _ <- separator
       x <- method if argumentParsers contains x
       y <- argumentParsers(x)
-      ')' <- capture
-      _ <- separator
     } yield y
-
   }
 
   def capture = Grammar.read[Option[Char]].collect { case Some(c) => c }
@@ -75,7 +79,7 @@ object LGrammar {
 
   def method: G[String] = select(('a' to 'z').contains)
 
-  private val reserved = Set('(', ')', ';', ' ', '\n', '\r', '\t', '\f')
+  private val reserved = Set('[', ']', ';', ' ', '\n', '\r', '\t', '\f')
 
   def identifier: G[String] = select(!reserved.contains(_))
 }

@@ -1,5 +1,5 @@
-(seq
-  (repeat 2 (seq (note 60 4) (note 62 4) (note 64 4) (note 60 4)))
-  (repeat 2 (seq (note 64 4) (note 65 4) (note 67 8)))
-  (repeat 2 (seq (note 67 2) (note 69 2) (note 67 2) (note 65 2) (note 64 4) (note 60 4)))
-  (repeat 2 (seq (note 60 4) (note 55 4) (note 60 8))))
+seq [patch 40
+  repeat 2 seq [note 60 4 note 62 4 note 64 4 note 60 4]
+  repeat 2 seq [note 64 4 note 65 4 note 67 8]
+  repeat 2 seq [note 67 2 note 69 2 note 67 2 note 65 2 note 64 4 note 60 4]
+  repeat 2 seq [note 60 4 note 55 4 note 60 8]]

@@ -18,6 +18,8 @@ object Loader {
           tr.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, c, k, 0), t))
         case lispy.NoteOn(c, k, v) =>
           tr.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, c, k, v), t))
+        case lispy.ProgramChange(c,p) =>
+          tr.add(new MidiEvent(new ShortMessage(ShortMessage.PROGRAM_CHANGE, c, p, 0), t))
       }
     }
     s
