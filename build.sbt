@@ -8,8 +8,7 @@ scalaVersion := "2.11.8"
 fork in run := true
 
 libraryDependencies ++= Seq(
-  "org.scalaz" %% "scalaz-core" % "7.3.0-M1",
-  "com.typesafe.akka" %% "akka-actor" % "2.4.7"
+  "org.scalaz" %% "scalaz-core" % "7.3.0-M1"
 )
 
 scalacOptions ++= Seq("-feature", "-deprecation")

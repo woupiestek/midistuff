@@ -32,6 +32,8 @@ case class Track(duration: Int, events: List[(Int, Message)]) {
   def toChannel(c: Int) = replace {
     case (_, NoteOn(_, k, v)) => NoteOn(c, k, v)
     case (_, NoteOff(_, k)) => NoteOff(c, k)
+    case (_, ProgramChange(_, p)) => ProgramChange(c, p)
+
   }
 }
 

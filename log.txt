@@ -1,4 +1,16 @@
 MIDI log:
+--- 19/6/16 ---
+
+* Sequence instructie laag: een laag inbouwen met instructies die het hele sequence aangaan, niet slecht individuele
+  tracks. Kun je dan variabelen tussen tracks delen?
+
+* Versie nummers: maak een header aan je bestanden met een versienummer erin
+
+* Extensie: kies een extensie voor de bestanden.
+
+* Command line interface: zorg dat alle functionaliteit beschikbaar blijft, des noods met allerlei vlaggen.
+
+
 --- 12/6/16 ---
 
 track -> track

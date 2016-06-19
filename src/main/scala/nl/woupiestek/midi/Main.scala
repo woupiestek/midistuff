@@ -1,9 +1,8 @@
 package nl.woupiestek.midi
 
+import java.io.File
 import javax.sound.midi._
 
-import akka.actor.ActorRef
-import nl.woupiestek.midi.extended.EventGenerator
 import nl.woupiestek.midi.lispy.Loader
 import nl.woupiestek.midi.parser.StringParser
 
@@ -11,7 +10,14 @@ import scala.io.Source
 import scala.util.Random
 
 object Main extends App {
-  playSequences(MidiSystem.getSequencer)(args.flatMap(Loader.load))
+  playSequences(MidiSystem.getSequencer, args(0).toFloat)(args.tail.flatMap(Loader.load))
+
+  def writeFiles(): Unit = {
+    for {
+      arg <- args
+      sequence <- Loader.load(arg)
+    } MidiSystem.write(sequence, 0, new File(s"$arg.mid"))
+  }
 
   def randomTestSounds(count: Int): Unit = {
     val random = new Random()
@@ -43,15 +49,14 @@ object Main extends App {
     }
   }
 
-  def playFile2(name: String, sequencerActorRef: ActorRef): Unit =
-    EventGenerator.load(name).foreach(sequencerActorRef ! _)
-
-  def playSequences(sequencer: Sequencer)(sequences: Seq[Sequence]): Unit = {
+  def playSequences(sequencer: Sequencer, bpm: Float)(sequences: Seq[Sequence]): Unit = {
     sequencer.open()
+    sequencer.setTempoInBPM(bpm)
     for (sequence <- sequences) {
       sequencer.setSequence(sequence)
       sequencer.start()
-      Thread.sleep(sequence.getMicrosecondLength / 1000L)
+      val duration = math.ceil(sequence.getMicrosecondLength / 1000L * (120 / bpm)).toLong
+      Thread.sleep(duration)
       sequencer.stop()
     }
     sequencer.close()
