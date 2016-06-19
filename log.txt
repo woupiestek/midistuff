@@ -11,6 +11,12 @@ MIDI log:
 * Command line interface: zorg dat alle functionaliteit beschikbaar blijft, des noods met allerlei vlaggen.
 
 
+Tracks versus channels:
+Het idee is dat de tracks echt staan voor verschillende instrumenten,
+En de channels slechts parallelle stemmen zijn op één instrument,
+Hoewel dat instrument een synthesizer kan zijn die meerdere patches tegelijk speelt.
+
+
 --- 12/6/16 ---
 
 track -> track

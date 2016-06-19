@@ -10,7 +10,8 @@ import scala.io.Source
 import scala.util.Random
 
 object Main extends App {
-  playSequences(MidiSystem.getSequencer, args(0).toFloat)(args.tail.flatMap(Loader.load))
+
+  play(MidiSystem.getSequencer, args.head.toFloat, args.tail.flatMap(Loader.load).toList)
 
   def writeFiles(): Unit = {
     for {
@@ -49,16 +50,20 @@ object Main extends App {
     }
   }
 
-  def playSequences(sequencer: Sequencer, bpm: Float)(sequences: Seq[Sequence]): Unit = {
+  def play(sequencer: Sequencer, bpm: Float, sequences: Seq[Sequence]) {
     sequencer.open()
     sequencer.setTempoInBPM(bpm)
+    sequencer.addMetaEventListener(new MetaEventListener() {
+      def meta(event: MetaMessage): Unit = {
+        if (event.getType == 47) sequencer.stop()
+      }
+    })
     for (sequence <- sequences) {
       sequencer.setSequence(sequence)
       sequencer.start()
-      val duration = math.ceil(sequence.getMicrosecondLength / 1000L * (120 / bpm)).toLong
-      Thread.sleep(duration)
-      sequencer.stop()
+      while (sequencer.isRunning) Thread.`yield`()
     }
     sequencer.close()
   }
+
 }
