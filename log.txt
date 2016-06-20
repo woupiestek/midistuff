@@ -1,4 +1,13 @@
 MIDI log:
+--- 20/6/16 ---
+
+Verbind messages aan tracks (niet alleen aan channels)
+Tenzij het tempo messages zijn.
+
+-> verdeling van messages over tracks
+-> toevoegen van tempo tracks met tempo messages
+-> misschien iets met track names. Hiervoor moeten we eigenlijk string kunnen parser.
+
 --- 19/6/16 ---
 
 * Sequence instructie laag: een laag inbouwen met instructies die het hele sequence aangaan, niet slecht individuele

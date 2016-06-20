@@ -11,7 +11,7 @@ import scala.util.Random
 
 object Main extends App {
 
-  play(MidiSystem.getSequencer, args.head.toFloat, args.tail.flatMap(Loader.load).toList)
+  play(MidiSystem.getSequencer, args.flatMap(Loader.load))
 
   def writeFiles(): Unit = {
     for {
@@ -50,9 +50,8 @@ object Main extends App {
     }
   }
 
-  def play(sequencer: Sequencer, bpm: Float, sequences: Seq[Sequence]) {
+  def play(sequencer: Sequencer, sequences: Seq[Sequence]) {
     sequencer.open()
-    sequencer.setTempoInBPM(bpm)
     sequencer.addMetaEventListener(new MetaEventListener() {
       def meta(event: MetaMessage): Unit = {
         if (event.getType == 47) sequencer.stop()
