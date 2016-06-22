@@ -1,11 +1,14 @@
 MIDI log:
+--- 22/6/16 ---
+Een onderscheid tussen variabelen en functies bevordert wellicht de leesbaarheid.
+
 --- 20/6/16 ---
 
 Verbind messages aan tracks (niet alleen aan channels)
 Tenzij het tempo messages zijn.
 
 -> verdeling van messages over tracks
--> toevoegen van tempo tracks met tempo messages
+-> toevoegen van tempo tracks met tempo messages [gereed]
 -> misschien iets met track names. Hiervoor moeten we eigenlijk string kunnen parser.
 
 --- 19/6/16 ---

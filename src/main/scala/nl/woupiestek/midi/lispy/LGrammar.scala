@@ -13,7 +13,7 @@ object LGrammar {
 
 class Context(entries: Map[String, Track]) {
   type TrackG = Grammar[Option[Char], Track]
-  
+
   private def scalar(f: (Track, Int) => Track): TrackG = for {
     x <- Tokens.number
     y <- track
@@ -88,15 +88,13 @@ object Tokens {
 
   def identifier: G[String] = select(!reserved.contains(_))
 
-  def leftBracket: G[Unit] = for {
-    '[' <- capture
+  private def single(c: Char): G[Unit] = for {
+    d <- capture if c == d
     _ <- separator
   } yield ()
 
-  def rightBracket: G[Unit] = for {
-    ']' <- capture
-    _ <- separator
-  } yield ()
+  def leftBracket: G[Unit] = single('[')
 
+  def rightBracket: G[Unit] = single(']')
 }
 

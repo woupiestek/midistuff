@@ -1,6 +1,11 @@
 midistuff-file-version-0.1
-seq[tempo 150 patch 0 rest 4 seq[
-  repeat 2 seq[note 60 24 note 62 24 note 64 24 note 60 24]
-  repeat 2 seq[note 64 24 note 65 24 note 67 48]
-  repeat 2 seq[note 67 12 note 69 12 note 67 12 note 65 12 note 64 24 note 60 24]
-  repeat 2 seq[note 60 24 note 55 24 note 60 48]]]
+put vader-jacob seq[
+                  repeat 2 seq[note 60 24 note 62 24 note 64 24 note 60 24]
+                  repeat 2 seq[note 64 24 note 65 24 note 67 48]
+                  repeat 2 seq[note 67 12 note 69 12 note 67 12 note 65 12 note 64 24 note 60 24]
+                  repeat 2 seq[note 60 24 note 55 24 note 60 48]]
+seq[tempo 150 patch 4 rest 4
+  get vader-jacob
+  chord[
+    get vader-jacob
+    channel 1 seq[patch 10 rest 192 get vader-jacob]]]
