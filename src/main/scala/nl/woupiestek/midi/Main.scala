@@ -3,17 +3,18 @@ package nl.woupiestek.midi
 import java.io.File
 import javax.sound.midi._
 
-import nl.woupiestek.midi.injection.Container
+import nl.woupiestek.midi.injection.SimpleContainer
 import nl.woupiestek.midi.lispy.Loader
 import nl.woupiestek.midi.parser.StringParser
 
 import scala.io.Source
-import scala.util.{Failure, Random, Success, Try}
+import scala.util.Random
 
 object Main extends App {
 
   //play(MidiSystem.getSequencer, args.flatMap(Loader.load))
 
+  val container = SimpleContainer.empty.add(MidiSystem.getSynthesizer)
 
   randomTestSounds(20)
 
@@ -42,7 +43,7 @@ object Main extends App {
       track <- randomNote
     } yield track)
 
-    new OtherSynthesizerWrapper().play(sequence).initialize(SynthesizerContainer)
+    new OtherSynthesizerWrapper().play(sequence).initialize(container)
   }
 
   def playFile(name: String) = {
@@ -54,7 +55,7 @@ object Main extends App {
         //the time unit of the synthesizer is the millisecond
         //which is too small for the files.
         val slower = score.map { case (t, e) => (100 * t, e) }
-        new OtherSynthesizerWrapper().play(slower).initialize(SynthesizerContainer)
+        new OtherSynthesizerWrapper().play(slower).initialize(container)
     }
   }
 
@@ -73,10 +74,4 @@ object Main extends App {
     sequencer.close()
   }
 
-}
-
-object SynthesizerContainer extends Container {
-  override def dependency[T](key: Class[T]): Try[T] =
-    if (classOf[Synthesizer] == key) Success(MidiSystem.getSynthesizer).asInstanceOf[Try[T]]
-    else Failure(new IllegalArgumentException(s"No dependency of class ${key.getCanonicalName} found."))
 }

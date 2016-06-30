@@ -1,5 +1,6 @@
 package nl.woupiestek.midi.injection
 
+import scala.reflect.ClassTag
 import scala.util.{Success, Try}
 
 sealed trait Component[T] {
@@ -26,7 +27,9 @@ class With[T, U](key: Class[T], build: T => Component[U]) extends Component[U] {
 }
 
 object Container {
-  def inject[T](key: Class[T]): With[T, T] = new With(key, new Pure(_))
+  def instance[T](key: Class[T]): Component[T] = new With[T, T](key, new Pure(_))
+
+  def inject[T](implicit ct: ClassTag[T]): Component[T] = instance[T](ct.runtimeClass.asInstanceOf[Class[T]])
 }
 
 trait Container {

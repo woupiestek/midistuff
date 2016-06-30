@@ -6,7 +6,7 @@ import nl.woupiestek.midi.injection.{Component, Container}
 
 class OtherSynthesizerWrapper {
 
-  val synthesizer: Component[Synthesizer] = Container.inject(classOf[Synthesizer])
+  val synthesizer: Component[Synthesizer] = Container.inject[Synthesizer]
 
   val million = 1000000l
 
