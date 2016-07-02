@@ -20,7 +20,7 @@ Tenzij het tempo messages zijn.
 
 * Extensie: kies een extensie voor de bestanden.
 
-* Command line interface: zorg dat alle functionaliteit beschikbaar blijft, des noods met allerlei vlaggen.
+* Command line interface: zorg dat alle functionaliteit beschikbaar blijft, desnoods met allerlei vlaggen.
 
 
 Tracks versus channels:
