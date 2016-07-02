@@ -13,6 +13,9 @@ class SimpleContainer private(dependencies: Map[Class[_], _]) extends Container 
 }
 
 object SimpleContainer {
-  def empty = new SimpleContainer(Map.empty)
+  val empty = new SimpleContainer(Map.empty)
+
+  def add[T](t: T)(implicit ct: ClassTag[T]): SimpleContainer =
+    new SimpleContainer(Map(ct.runtimeClass -> t))
 }
 

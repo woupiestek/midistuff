@@ -14,7 +14,7 @@ object Main extends App {
 
   //play(MidiSystem.getSequencer, args.flatMap(Loader.load))
 
-  val container = SimpleContainer.empty.add(MidiSystem.getSynthesizer)
+  implicit val container = SimpleContainer.add(MidiSystem.getSynthesizer)
 
   randomTestSounds(20)
 
@@ -43,7 +43,7 @@ object Main extends App {
       track <- randomNote
     } yield track)
 
-    new OtherSynthesizerWrapper().play(sequence).initialize(container)
+    new OtherSynthesizerWrapper().play(sequence).initialize
   }
 
   def playFile(name: String) = {
@@ -55,7 +55,7 @@ object Main extends App {
         //the time unit of the synthesizer is the millisecond
         //which is too small for the files.
         val slower = score.map { case (t, e) => (100 * t, e) }
-        new OtherSynthesizerWrapper().play(slower).initialize(container)
+        new OtherSynthesizerWrapper().play(slower).initialize
     }
   }
 
