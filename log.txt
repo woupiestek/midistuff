@@ -1,4 +1,21 @@
 MIDI log:
+--- 25/10/16 ---
+
+Beter idee van waar dit heen moet:
+
+-> dynamische lijst van argument parsers, met definieerbare argumenten dus.
+-> daarbij zonodig meer basale instructies zodat de argumetn parsers minder hoeven te doen.
+
+
+--- 24/10/16 ---
+Alternatieve opzet:
+
+tekst -> tokens -> asts -> sequence
+ipv definiëren tracks meer details van het proces dat ze voortbrengt weergeven.
+
+basis syntax: keywords met vaste ariteit, met lijsten mogelijk als uitzondering,
+natuurlijk variabelen met bindings.
+
 --- 22/6/16 ---
 Een onderscheid tussen variabelen en functies bevordert wellicht de leesbaarheid.
 

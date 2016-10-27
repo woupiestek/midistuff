@@ -40,6 +40,12 @@ final class Grammar[-In, +Out] private(ops: => List[Out \/ (In => Grammar[In, Ou
   } yield x :: y
 
   def zeroOrOne: Grammar[In, Option[Out]] = map(Some(_)) | Grammar.point(None)
+
+  def andThen[Out2](grammar: Grammar[Out, Out2]): Grammar[In, Out2] = new Grammar[In, Out2](
+    grammar.options.flatMap {
+      case -\/(out2) => List(-\/(out2))
+      case \/-(read2) => flatMap(out => andThen(read2(out))).options
+    })
 }
 
 object Grammar {
@@ -47,6 +53,8 @@ object Grammar {
   def point[Out](out: Out): Grammar[Any, Out] = new Grammar(List(-\/(out)))
 
   def read[In]: Grammar[In, In] = new Grammar(List(\/-(point[In])))
+
+  def collect[In, Out](f: PartialFunction[In, Out]) = read[In].collect(f)
 
   val fail: Grammar[Any, Nothing] = new Grammar(Nil)
 }
