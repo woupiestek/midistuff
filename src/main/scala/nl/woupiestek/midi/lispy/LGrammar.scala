@@ -57,22 +57,19 @@ class Context(entries: Map[String, Track]) {
 
 sealed trait Token
 
-object Token {
+case class Number(value: Int) extends Token
 
-  case class Number(value: Int) extends Token
+case class Identifier(name: String) extends Token
 
-  case class Method(name: String) extends Token
+case object BeginList extends Token
 
-  case class Identifier(name: String) extends Token
+case object EndList extends Token
 
-  case object BeginList extends Token
+case object BeginFile extends Token
 
-  case object EndList extends Token
+case object EndFile extends Token
 
-  case object BeginFile extends Token
-
-  case object EndFile extends Token
-
+object Parser {
 
   def file: Grammar[Option[Char], Track] =
     Tokenizer.token andThen (for {
@@ -98,8 +95,8 @@ object Token {
 
     private val argumentParsers: Map[String, TG] = Map(
       "note" -> (for {
-        key <- collect[Token,Int] { case Number(x) => x }
-        duration <- collect[Token,Int] { case Number(x) => x }
+        key <- collect[Token, Int] { case Number(x) => x }
+        duration <- collect[Token, Int] { case Number(x) => x }
       } yield Track(duration, List((0, NoteOn(0, key, 60)), (duration, NoteOff(0, key))))),
       "rest" -> collect { case Number(d) => Track(d, Nil) },
       "patch" -> collect { case Number(p) => Track(0, List((0, ProgramChange(0, p)))) },
@@ -112,80 +109,66 @@ object Token {
       "channel" -> scalar(_ toChannel _),
       "repeat" -> scalar((y, x) => (1 to x).map(_ => y).foldLeft(Track.empty)(_ append _)),
       "put" -> (for {
-        x <- collect[Token,String] { case Identifier(x) => x }
+        x <- collect[Token, String] { case Identifier(x) => x }
         y <- track
         z <- new Context(entries + (x -> y)).track
       } yield z),
-      "get" -> collect[Token,String] { case Identifier(x) => x }.collect(entries))
+      "get" -> collect[Token, String] { case Identifier(x) => x }.collect(entries))
 
     def track: TG = for {
-      x <- collect[Token,String] { case Method(name) => name }
+      x <- collect[Token, String] { case Identifier(name) => name }
       y <- argumentParsers.getOrElse(x, fail)
     } yield y
   }
 
-  object Tokenizer {
-    type TT = Grammar[Option[Char], Token]
+}
 
-    def token: TT = number | method | identifier | beginList | endList | beginFile | endFile
+object Tokenizer {
+  type TT = Grammar[Option[Char], Token]
 
-    def number: TT = natural | (for {
-      Some('-') <- read[Option[Char]]
-      Number(n) <- natural
-    } yield Number(-n))
+  def token: TT = for{
+    option <- read[Option[Char]]
+    t <- option match {
+      case None => point(EndFile)
+      case Some(c) => for{
+        t <- rest(c)
+        _ <- separator
+      } yield t
+    }
+  } yield t
 
-    private def natural: TT = for {
-      digits <- collect[Option[Char], Char] { case Some(c) if ('0' to '9').contains(c) => c }.oneOrMore
-      _ <- separator
-    } yield Number(digits.mkString.toInt)
+  private def reserved = Set('[', ']', ';', ' ', '\n', '\r', '\t', '\f')
 
-    def method: TT = for {
-      digits <- collect[Option[Char], Char] { case Some(c) if ('a' to 'z').contains(c) => c }.oneOrMore
-      _ <- separator
-    } yield Method(digits.mkString)
-
-    private def reserved = Set('[', ']', ';', '-', ' ', '\n', '\r', '\t', '\f')
-
-    def identifier: TT = for {
-      digits <- collect[Option[Char], Char] { case Some(c) if !reserved.contains(c) => c }.oneOrMore
-      _ <- separator
-    } yield Identifier(digits.mkString)
-
-    def beginList: TT = for {
-      t <- collect[Option[Char], Token] { case Some('[') => BeginList }
-      _ <- separator
-    } yield t
-
-    def endList: TT = for {
-      t <- collect[Option[Char], Token] { case Some(']') => EndList }
-      _ <- separator
-    } yield t
-
-    def beginFile: TT = for {
-      _ <- separator
-      "midistuff-file-version-0.1" <- collect[Option[Char], Char] { case Some(c) => c }.oneOrMore.map(_.mkString)
-      _ <- separator
-    } yield BeginFile
-
-    def endFile: TT = collect { case None => EndFile }
-
-    type TU = Grammar[Option[Char], Unit]
-
-    def newLine: TU = collect { case Some(c) if c == '\n' || c == '\r' => () }
-
-    def comment: TU = for {
-      Some(';') <- read[Option[Char]]
-      _ <- read[Option[Char]].zeroOrMore
-      _ <- newLine
-    } yield ()
-
-    def space: TU = collect { case Some(c) if Character.isWhitespace(c) => () }
-
-    def separator: TU = (space | comment).zeroOrMore.map(_ => ())
-
+  def rest(first: Char): TT = {
+    if ('[' == first) point(BeginList)
+    else if (']' == first) point(EndList)
+    else if ('-' == first) {
+      for {
+        digits <- collect[Option[Char], Char] { case Some(c) if ('0' to '9').contains(c) => c }.oneOrMore
+      } yield Number(-digits.mkString.toInt)
+    } else if (('0' to '9').contains(first)) {
+      for {
+        digits <- collect[Option[Char], Char] { case Some(c) if ('0' to '9').contains(c) => c }.zeroOrMore
+      } yield Number((first :: digits).mkString.toInt)
+    } else if (Character.isAlphabetic(first)) {
+      for {
+        digits <- collect[Option[Char], Char] { case Some(c) if !reserved.contains(c) => c }.zeroOrMore
+      } yield Identifier((first :: digits).mkString)
+    } else fail
   }
 
+  type TU = Grammar[Option[Char], Unit]
+
+  def comment: TU = for {
+    Some(';') <- read[Option[Char]]
+    _ <- read[Option[Char]].filter(option => !option.contains('\n') && !option.contains('\r')).zeroOrMore
+  } yield ()
+
+  def space: TU = collect { case Some(c) if Character.isWhitespace(c) => () }
+
+  def separator: TU = space.zeroOrMore.flatMap(_ => comment).zeroOrMore.map(_ => ())
 }
+
 
 object Tokens {
 

@@ -54,10 +54,19 @@ final class Grammar[-In, +Out] private(ops: => List[Out \/ (In => Grammar[In, Ou
       }
     })
   }
+
+  def fold[P](onFail: P, onUnit: Out => P, onBind: (In => P) => P): P = {
+    def p(ls: List[Out \/ (In => Grammar[In, Out])]): P = ls match {
+      case Nil => onFail
+      case -\/(out) :: _ => onUnit(out)
+      case \/-(read) :: tail => onBind(in => p(read(in).options ++ tail))
+    }
+    p(options)
+  }
+
 }
 
 object Grammar {
-
   def point[Out](out: Out): Grammar[Any, Out] = new Grammar(List(-\/(out)))
 
   def read[In]: Grammar[In, In] = new Grammar(List(\/-(point[In])))
@@ -67,3 +76,19 @@ object Grammar {
   val fail: Grammar[Any, Nothing] = new Grammar(Nil)
 }
 
+trait Folder[In, Out, P] {
+  def onFail: P
+
+  def onPoint(out: Out): P
+
+  def onRead(read: In => P): P
+
+  final def fold(grammar: Grammar[In, Out]): P = {
+    def p(options: List[Out \/ (In => Grammar[In, Out])]): P = options match {
+      case Nil => onFail
+      case -\/(out) :: _ => onPoint(out)
+      case \/-(read) :: tail => onRead(in => p(read(in).options ++ tail))
+    }
+    p(grammar.options)
+  }
+}

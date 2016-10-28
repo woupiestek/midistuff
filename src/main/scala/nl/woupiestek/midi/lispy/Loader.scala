@@ -32,7 +32,7 @@ object Loader {
 
   def load(name: String): Option[Sequence] = {
     val input = Source.fromFile(name).getLines().mkString("\n")
-    StringParser.parse(input, lispy.Token.file) map {
+    StringParser.parse(input, lispy.LGrammar.file) map {
       track =>
         val s = new Sequence(Sequence.PPQ, 24)
         write(track, s)
