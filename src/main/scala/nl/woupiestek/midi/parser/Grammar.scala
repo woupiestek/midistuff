@@ -46,6 +46,14 @@ final class Grammar[-In, +Out] private(ops: => List[Out \/ (In => Grammar[In, Ou
       case -\/(out2) => List(-\/(out2))
       case \/-(read2) => flatMap(out => andThen(read2(out))).options
     })
+
+  def fold[P](f: List[Out \/ (In => P)] => P): P = {
+    f(options.map {
+      either => either.map {
+        read => (in: In) => read(in).fold(f)
+      }
+    })
+  }
 }
 
 object Grammar {
