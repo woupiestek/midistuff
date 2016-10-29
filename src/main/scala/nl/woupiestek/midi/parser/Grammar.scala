@@ -47,23 +47,6 @@ final class Grammar[-In, +Out] private(ops: => List[Out \/ (In => Grammar[In, Ou
       case \/-(read2) => flatMap(out => andThen(read2(out))).options
     })
 
-  def fold[P](f: List[Out \/ (In => P)] => P): P = {
-    f(options.map {
-      either => either.map {
-        read => (in: In) => read(in).fold(f)
-      }
-    })
-  }
-
-  def fold[P](onFail: P, onUnit: Out => P, onBind: (In => P) => P): P = {
-    def p(ls: List[Out \/ (In => Grammar[In, Out])]): P = ls match {
-      case Nil => onFail
-      case -\/(out) :: _ => onUnit(out)
-      case \/-(read) :: tail => onBind(in => p(read(in).options ++ tail))
-    }
-    p(options)
-  }
-
 }
 
 object Grammar {
@@ -79,15 +62,15 @@ object Grammar {
 trait Folder[In, Out, P] {
   def onFail: P
 
-  def onPoint(out: Out): P
+  def onPoint(out: Out, or: => P): P
 
-  def onRead(read: In => P): P
+  def onRead(read: In => P, or: => P): P
 
   final def fold(grammar: Grammar[In, Out]): P = {
     def p(options: List[Out \/ (In => Grammar[In, Out])]): P = options match {
       case Nil => onFail
-      case -\/(out) :: _ => onPoint(out)
-      case \/-(read) :: tail => onRead(in => p(read(in).options ++ tail))
+      case -\/(out) :: tail => onPoint(out,p(tail))
+      case \/-(read) :: tail => onRead(in => p(read(in).options),p(tail))
     }
     p(grammar.options)
   }

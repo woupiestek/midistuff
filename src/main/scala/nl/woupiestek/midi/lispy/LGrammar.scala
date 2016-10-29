@@ -3,58 +3,6 @@ package nl.woupiestek.midi.lispy
 import nl.woupiestek.midi.parser.Grammar
 import nl.woupiestek.midi.parser.Grammar._
 
-
-object LGrammar {
-  val header_0_1 = "midistuff-file-version-0.1"
-
-  def file: Grammar[Option[Char], Track] = for {
-    header <- Tokens.identifier if header_0_1.equalsIgnoreCase(header)
-    x <- new Context(Map.empty).track
-  } yield x
-}
-
-class Context(entries: Map[String, Track]) {
-  type TrackG = Grammar[Option[Char], Track]
-
-  private def scalar(f: (Track, Int) => Track): TrackG = for {
-    x <- Tokens.number
-    y <- track
-  } yield f(y, x)
-
-  private def trackListFold(f: (Track, Track) => Track): TrackG = for {
-    _ <- Tokens.leftBracket
-    ts <- track.oneOrMore
-    _ <- Tokens.rightBracket
-  } yield ts.foldLeft(Track.empty)(f)
-
-  private val argumentParsers: Map[String, TrackG] = Map(
-    "note" -> (for {
-      key <- Tokens.natural
-      duration <- Tokens.natural
-    } yield Track(duration, List((0, NoteOn(0, key, 60)), (duration, NoteOff(0, key))))),
-    "rest" -> Tokens.number.map(d => Track(d, Nil)),
-    "patch" -> Tokens.number.map(p => Track(0, List((0, ProgramChange(0, p))))),
-    "tempo" -> Tokens.number.map(t => Track(0, List((0, Tempo(t))))),
-    "seq" -> trackListFold(_ append _),
-    "chord" -> trackListFold(_ stack _),
-    "piu" -> scalar(_ piu _),
-    "cresc" -> scalar(_ cresc _),
-    "transpose" -> scalar(_ transpose _),
-    "channel" -> scalar(_ toChannel _),
-    "repeat" -> scalar((y, x) => (1 to x).map(_ => y).foldLeft(Track.empty)(_ append _)),
-    "put" -> (for {
-      x <- Tokens.identifier
-      y <- track
-      z <- new Context(entries + (x -> y)).track
-    } yield z),
-    "get" -> Tokens.identifier.collect(entries))
-
-  def track: TrackG = for {
-    x <- Tokens.method if argumentParsers contains x
-    y <- argumentParsers(x)
-  } yield y
-}
-
 sealed trait Token
 
 case class Number(value: Int) extends Token
@@ -71,36 +19,41 @@ case object EndFile extends Token
 
 object Parser {
 
-  def file: Grammar[Option[Char], Track] =
+  type TG = Grammar[Token, Result]
+
+  case class Result(track: Track, context: Map[String, Track] = Map.empty)
+
+  def file: Grammar[Option[Char], Result] =
     Tokenizer.token andThen (for {
       BeginFile <- read[Token]
-      x <- new Context(Map.empty).track
+      x <- track(Map.empty)
       EndFile <- read[Token]
     } yield x)
 
-  class Context(entries: Map[String, Track]) {
 
-    type TG = Grammar[Token, Track]
+  def track(context: Map[String, Track]): TG = {
 
-    private def scalar(f: (Track, Int) => Track): TG = for {
+    def scalar(f: (Track, Int) => Track): TG = for {
       x <- collect[Token, Int] { case Number(w) => w }
-      y <- track
-    } yield f(y, x)
+      y <- track(context)
+    } yield y.copy(track = f(y.track, x))
 
-    private def fold(f: (Track, Track) => Track): TG = for {
+    def fold(f: (Track, Track) => Track): TG = for {
       BeginList <- read[Token]
-      ts <- track.oneOrMore
+      ts <- track(context).oneOrMore
       EndList <- read
-    } yield ts.foldLeft(Track.empty)(f)
+    } yield Result(
+      ts.map(_.track).foldLeft(Track.empty)(f),
+      ts.map(_.context).foldLeft(context)(_ ++ _))
 
-    private val argumentParsers: Map[String, TG] = Map(
+    val argumentParsers: Map[String, TG] = Map(
       "note" -> (for {
         key <- collect[Token, Int] { case Number(x) => x }
         duration <- collect[Token, Int] { case Number(x) => x }
-      } yield Track(duration, List((0, NoteOn(0, key, 60)), (duration, NoteOff(0, key))))),
-      "rest" -> collect { case Number(d) => Track(d, Nil) },
-      "patch" -> collect { case Number(p) => Track(0, List((0, ProgramChange(0, p)))) },
-      "tempo" -> collect { case Number(t) => Track(0, List((0, Tempo(t)))) },
+      } yield Result(Track(duration, List((0, NoteOn(0, key, 60)), (duration, NoteOff(0, key)))))),
+      "rest" -> collect { case Number(d) => Result(Track(d, Nil)) },
+      "patch" -> collect { case Number(p) => Result(Track(0, List((0, ProgramChange(0, p))))) },
+      "tempo" -> collect { case Number(t) => Result(Track(0, List((0, Tempo(t))))) },
       "seq" -> fold(_ append _),
       "chord" -> fold(_ stack _),
       "piu" -> scalar(_ piu _),
@@ -110,27 +63,26 @@ object Parser {
       "repeat" -> scalar((y, x) => (1 to x).map(_ => y).foldLeft(Track.empty)(_ append _)),
       "put" -> (for {
         x <- collect[Token, String] { case Identifier(x) => x }
-        y <- track
-        z <- new Context(entries + (x -> y)).track
+        y <- track(context)
+        z <- track(context + (x -> y.track))
       } yield z),
-      "get" -> collect[Token, String] { case Identifier(x) => x }.collect(entries))
+      "get" -> collect { case Identifier(x) if context.contains(x) => Result(context(x), context) })
 
-    def track: TG = for {
+    for {
       x <- collect[Token, String] { case Identifier(name) => name }
       y <- argumentParsers.getOrElse(x, fail)
     } yield y
   }
-
 }
 
 object Tokenizer {
   type TT = Grammar[Option[Char], Token]
 
-  def token: TT = for{
+  def token: TT = for {
     option <- read[Option[Char]]
     t <- option match {
       case None => point(EndFile)
-      case Some(c) => for{
+      case Some(c) => for {
         t <- rest(c)
         _ <- separator
       } yield t
@@ -164,54 +116,7 @@ object Tokenizer {
     _ <- read[Option[Char]].filter(option => !option.contains('\n') && !option.contains('\r')).zeroOrMore
   } yield ()
 
-  def space: TU = collect { case Some(c) if Character.isWhitespace(c) => () }
+  def space: TU = collect[Option[Char], Unit] { case Some(c) if Character.isWhitespace(c) => () }
 
-  def separator: TU = space.zeroOrMore.flatMap(_ => comment).zeroOrMore.map(_ => ())
+  def separator: TU = (space | comment).zeroOrMore.map(_ => ())
 }
-
-
-object Tokens {
-
-  type G[T] = Grammar[Option[Char], T]
-
-  private def capture: G[Char] = collect { case Some(c) => c }
-
-  //remove whitespace and comments
-  def separator: G[Unit] = (for {
-    x <- capture
-    _ <- if (Set(' ', '\n', '\r', '\t', '\f').contains(x)) separator else if (';' == x) comment else fail
-  } yield ()) | point(())
-
-  private def comment: G[Unit] = for {
-    x <- capture
-    _ <- if ('\n' == x || '\r' == x) separator else comment
-  } yield ()
-
-  def natural: G[Int] = select(('0' to '9').contains).map(_.toInt)
-
-  private def select(f: Char => Boolean): G[String] = for {
-    x <- capture.filter(f).oneOrMore
-    _ <- separator
-  } yield x.mkString
-
-  def number: G[Int] = natural | (for {
-    Some('-') <- read[Option[Char]]
-    n <- natural
-  } yield -n)
-
-  def method: G[String] = select(('a' to 'z').contains)
-
-  private val reserved = Set('[', ']', ';', ' ', '\n', '\r', '\t', '\f')
-
-  def identifier: G[String] = select(!reserved.contains(_))
-
-  private def single(c: Char): G[Unit] = for {
-    d <- capture if c == d
-    _ <- separator
-  } yield ()
-
-  def leftBracket: G[Unit] = single('[')
-
-  def rightBracket: G[Unit] = single(']')
-}
-

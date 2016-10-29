@@ -32,10 +32,10 @@ object Loader {
 
   def load(name: String): Option[Sequence] = {
     val input = Source.fromFile(name).getLines().mkString("\n")
-    StringParser.parse(input, lispy.LGrammar.file) map {
-      track =>
+    StringParser.parse(input, lispy.Parser.file) map {
+      result =>
         val s = new Sequence(Sequence.PPQ, 24)
-        write(track, s)
+        write(result.track, s)
         s
     }
   }
