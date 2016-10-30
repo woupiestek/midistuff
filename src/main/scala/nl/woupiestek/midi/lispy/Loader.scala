@@ -3,8 +3,10 @@ package nl.woupiestek.midi.lispy
 import javax.sound.midi._
 
 import nl.woupiestek.midi.lispy
+import nl.woupiestek.midi.lispy.Parser.{Get, Play, Put, Result}
 import nl.woupiestek.midi.parser.StringParser
 
+import scala.annotation.tailrec
 import scala.io.Source
 
 
@@ -30,14 +32,23 @@ object Loader {
     }
   }
 
+  @tailrec def extract(result: Result, context: Map[String, Track]): Option[Track] = result match {
+    case Get(key, continuation) => context.get(key)
+    case Play(track) => Some(track)
+    case Put(key, track, continuation) => extract(continuation, context + (key -> track))
+  }
+
   def load(name: String): Option[Sequence] = {
     val input = Source.fromFile(name).getLines().mkString("\n")
-    StringParser.parse(input, lispy.Parser.file) map {
-      result =>
-        val s = new Sequence(Sequence.PPQ, 24)
-        write(result.track, s)
-        s
+    for {
+      result <- StringParser.parse(input, lispy.Parser.file)
+      track <- extract(result, Map.empty)
+    } yield {
+      val s = new Sequence(Sequence.PPQ, 24)
+      write(track, s)
+      s
     }
   }
+
 
 }

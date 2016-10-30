@@ -21,39 +21,60 @@ object Parser {
 
   type TG = Grammar[Token, Result]
 
-  case class Result(track: Track, context: Map[String, Track] = Map.empty)
+  sealed trait Result {
+    def flatMap(f: Track => Result): Result
+
+    def map(f: Track => Track): Result = flatMap(track => Play(f(track)))
+  }
+
+  case class Get(key: String, next: Track => Result) extends Result {
+    override def flatMap(f: (Track) => Result): Result = copy(next = track => next(track).flatMap(f))
+  }
+
+  case class Play(track: Track) extends Result {
+    override def flatMap(f: (Track) => Result): Result = f(track)
+  }
+
+  case class Put(key: String, track: Track, next: Result) extends Result {
+    override def flatMap(f: (Track) => Result): Result = copy(next = next.flatMap(f))
+  }
+
+  //case class Result(track: Track, context: Map[String, Track] = Map.empty)
 
   def file: Grammar[Option[Char], Result] =
     Tokenizer.token andThen (for {
       BeginFile <- read[Token]
-      x <- track(Map.empty)
+      x <- track
       EndFile <- read[Token]
     } yield x)
 
 
-  def track(context: Map[String, Track]): TG = {
+  def track: TG = {
 
     def scalar(f: (Track, Int) => Track): TG = for {
       x <- collect[Token, Int] { case Number(w) => w }
-      y <- track(context)
-    } yield y.copy(track = f(y.track, x))
+      y <- track
+    } yield y.flatMap(track => Play(f(track, x)))
 
     def fold(f: (Track, Track) => Track): TG = for {
       BeginList <- read[Token]
-      ts <- track(context).oneOrMore
+      ts <- track.oneOrMore
       EndList <- read
-    } yield Result(
-      ts.map(_.track).foldLeft(Track.empty)(f),
-      ts.map(_.context).foldLeft(context)(_ ++ _))
+    } yield ts.foldLeft[Result](Play(Track.empty)) {
+      case (x, y) => for {
+        u <- x
+        v <- y
+      } yield f(u, v)
+    }
 
     val argumentParsers: Map[String, TG] = Map(
       "note" -> (for {
         key <- collect[Token, Int] { case Number(x) => x }
         duration <- collect[Token, Int] { case Number(x) => x }
-      } yield Result(Track(duration, List((0, NoteOn(0, key, 60)), (duration, NoteOff(0, key)))))),
-      "rest" -> collect { case Number(d) => Result(Track(d, Nil)) },
-      "patch" -> collect { case Number(p) => Result(Track(0, List((0, ProgramChange(0, p))))) },
-      "tempo" -> collect { case Number(t) => Result(Track(0, List((0, Tempo(t))))) },
+      } yield Play(Track(duration, List((0, NoteOn(0, key, 60)), (duration, NoteOff(0, key)))))),
+      "rest" -> collect { case Number(d) => Play(Track(d, Nil)) },
+      "patch" -> collect { case Number(p) => Play(Track(0, List((0, ProgramChange(0, p))))) },
+      "tempo" -> collect { case Number(t) => Play(Track(0, List((0, Tempo(t))))) },
       "seq" -> fold(_ append _),
       "chord" -> fold(_ stack _),
       "piu" -> scalar(_ piu _),
@@ -63,10 +84,10 @@ object Parser {
       "repeat" -> scalar((y, x) => (1 to x).map(_ => y).foldLeft(Track.empty)(_ append _)),
       "put" -> (for {
         x <- collect[Token, String] { case Identifier(x) => x }
-        y <- track(context)
-        z <- track(context + (x -> y.track))
-      } yield z),
-      "get" -> collect { case Identifier(x) if context.contains(x) => Result(context(x), context) })
+        y <- track
+        z <- track
+      } yield y.flatMap(y2 => Put(x,y2,z))),
+      "get" -> collect { case Identifier(x) => Get(x,Play) })
 
     for {
       x <- collect[Token, String] { case Identifier(name) => name }
