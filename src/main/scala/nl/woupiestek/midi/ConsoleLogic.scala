@@ -44,10 +44,12 @@ object ConsoleLogic {
 
     @tailrec def loop(context: Map[String, Track]): Unit = {
       val input = StdIn.readLine("> ")
-      if (input == "exit") player.close()
-      else loop(next(StdIn.readLine("> "), context, player))
+      if(null == input) ()
+      else if (input == "exit") player.close()
+      else loop(next(input, context, player))
     }
 
+    println("midistuff started")
     loop(Map.empty)
   }
 
@@ -66,7 +68,6 @@ class MidiPlayer extends Player {
       if (event.getType == 47) sequencer.stop()
     }
   })
-
 
   override def play(track: Track): Unit = {
     val s = new Sequence(Sequence.PPQ, 24)

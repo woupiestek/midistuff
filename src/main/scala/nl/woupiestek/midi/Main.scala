@@ -16,7 +16,11 @@ object Main extends App {
 
   implicit val container = SimpleContainer.add(MidiSystem.getSynthesizer)
 
-  randomTestSounds(20)
+  //randomTestSounds(20)
+
+  ConsoleLogic.start()
+
+
 
   def writeFiles(): Unit = {
     for {
