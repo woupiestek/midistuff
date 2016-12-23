@@ -71,7 +71,7 @@ object Parser {
       "note" -> (for {
         key <- collect[Token, Int] { case Number(x) => x }
         duration <- collect[Token, Int] { case Number(x) => x }
-      } yield Play(Track(duration, List((0, NoteOn(0, key, 60)), (duration, NoteOff(0, key)))))),
+      } yield Play(Track(duration, List((0, NoteOn(0, key)), (duration, NoteOff(0, key)))))),
       "rest" -> collect { case Number(d) => Play(Track(d, Nil)) },
       "patch" -> collect { case Number(p) => Play(Track(0, List((0, ProgramChange(0, p))))) },
       "tempo" -> collect { case Number(t) => Play(Track(0, List((0, Tempo(t))))) },

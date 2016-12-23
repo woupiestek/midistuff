@@ -4,7 +4,7 @@ import scalaz.{-\/, \/, \/-}
 
 final class Grammar[-In, +Out] private(ops: => List[Out \/ (In => Grammar[In, Out])]) {
 
-  lazy val options = ops
+  lazy val options: List[\/[Out, (In) => Grammar[In, Out]]] = ops
 
   def flatMap[In2 <: In, Out2](f: Out => Grammar[In2, Out2]): Grammar[In2, Out2] =
     new Grammar(options.flatMap {
@@ -21,7 +21,7 @@ final class Grammar[-In, +Out] private(ops: => List[Out \/ (In => Grammar[In, Ou
       case \/-(read) => \/-((in: In) => read(in).filter(f))
     })
 
-  def withFilter(f: Out => Boolean) = filter(f)
+  def withFilter(f: Out => Boolean): Grammar[In, Out] = filter(f)
 
   def |[In2 <: In, Out2 >: Out](simplifiedGrammar: Grammar[In2, Out2]): Grammar[In2, Out2] =
     new Grammar[In2, Out2](options ++ simplifiedGrammar.options)
@@ -54,7 +54,7 @@ object Grammar {
 
   def read[In]: Grammar[In, In] = new Grammar(List(\/-(point[In])))
 
-  def collect[In, Out](f: PartialFunction[In, Out]) = read[In].collect(f)
+  def collect[In, Out](f: PartialFunction[In, Out]): Grammar[In, Out] = read[In].collect(f)
 
   val fail: Grammar[Any, Nothing] = new Grammar(Nil)
 }
@@ -67,7 +67,8 @@ trait Folder[In, Out, P] {
   def onRead(read: In => P, or: => P): P
 
   final def fold(grammar: Grammar[In, Out]): P = {
-    def p(options: List[Out \/ (In => Grammar[In, Out])]): P = options match {
+    def p(options: List[Out \/ (In => Grammar
+      [In, Out])]): P = options match {
       case Nil => onFail
       case -\/(out) :: tail => onPoint(out,p(tail))
       case \/-(read) :: tail => onRead(in => p(read(in).options),p(tail))
