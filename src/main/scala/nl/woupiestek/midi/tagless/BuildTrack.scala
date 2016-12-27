@@ -1,41 +1,27 @@
 package nl.woupiestek.midi.tagless
 
-import nl.woupiestek.midi.lispy._
+import nl.woupiestek.midi.lispy.{Track => LTrack,_}
 
-object BuildTrack extends MidiTrack[Map[String, Track] => Track] {
-  override def empty: (Map[String, Track]) => Track = _ => Track.empty
+object BuildTrack extends Score[LTrack] {
+  override def empty: LTrack = LTrack.empty
 
-  override def setTempo(beatsPerMinute: Int): (Map[String, Track]) => Track =
-    _ => Track(0, List((0, Tempo(beatsPerMinute))))
+  override def setTempo(beatsPerMinute: Int): LTrack = LTrack(0, List((0, Tempo(beatsPerMinute))))
 
-  override def note(key: Int, duration: Int): (Map[String, Track]) => Track =
-    _ => Track(duration, List((0, NoteOn(0, key)), (duration, NoteOff(0, key))))
+  override def note(key: Int, duration: Int): LTrack = LTrack(duration, List((0, NoteOn(0, key)), (duration, NoteOff(0, key))))
 
-  override def rest(duration: Int): (Map[String, Track]) => Track = _ => Track(duration, Nil)
+  override def rest(duration: Int): LTrack = LTrack(duration, Nil)
 
-  override def setProgram(program: Int): (Map[String, Track]) => Track =
-    _ => Track(0,List((0,ProgramChange(0,program))))
+  override def setProgram(program: Int): LTrack = LTrack(0, List((0, ProgramChange(0, program))))
 
-  override def append(list: Seq[(Map[String, Track]) => Track]): (Map[String, Track]) => Track =
-    context => list.foldLeft(Track.empty){ case (x,y) => x append y(context)}
+  override def append(list: Seq[LTrack]): LTrack = list.foldLeft(LTrack.empty) { case (x, y) => x append y }
 
-  override def stack(list: Seq[(Map[String, Track]) => Track]): (Map[String, Track]) => Track =
-  context => list.foldLeft(Track.empty){ case (x,y) => x stack y(context)}
+  override def stack(list: Seq[LTrack]): LTrack = list.foldLeft(LTrack.empty) { case (x, y) => x stack y }
 
-  override def piu(gain: Int, track: (Map[String, Track]) => Track): (Map[String, Track]) => Track =
-    context => track(context).piu(gain)
+  override def piu(gain: Int, track: LTrack): LTrack = track.piu(gain)
 
-  override def cresc(gain: Int, track: (Map[String, Track]) => Track): (Map[String, Track]) => Track =
-    context => track(context).cresc(gain)
+  override def cresc(gain: Int, track: LTrack): LTrack = track.cresc(gain)
 
-  override def setChannel(channel: Int, track: (Map[String, Track]) => Track): (Map[String, Track]) => Track =
-    context => track(context).toChannel(channel)
+  override def setChannel(channel: Int, track: LTrack): LTrack = track.toChannel(channel)
 
-  override def get(key: String): (Map[String, Track]) => Track = _.getOrElse(key,Track.empty)
-
-  override def put(key: String, value: (Map[String, Track]) => Track, next: (Map[String, Track]) => Track): (Map[String, Track]) => Track =
-    context => next(context + (key -> value(context)))
-
-  override def transpose(keys: Int, track: (Map[String, Track]) => Track): (Map[String, Track]) => Track =
-    context => track(context).transpose(keys)
+  override def transpose(keys: Int, track: LTrack): LTrack = track.transpose(keys)
 }

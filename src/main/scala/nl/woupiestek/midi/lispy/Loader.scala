@@ -1,6 +1,6 @@
 package nl.woupiestek.midi.lispy
 
-import javax.sound.midi._
+import javax.sound.midi.{Track=>MidiTrack,_}
 
 import nl.woupiestek.midi.lispy
 import nl.woupiestek.midi.lispy.Parser.{Get, Play, Put, Result}
@@ -11,13 +11,11 @@ import scala.io.Source
 
 
 object Loader {
-  def write(track: lispy.Track, s: Sequence): Unit = {
+  def write(track: lispy.Track, tr:MidiTrack): Unit = {
     def tempoMessage(bpm: Int): MidiMessage = {
       val data = BigInt(60000000 / bpm).toByteArray
       new MetaMessage(0x51, data, data.length)
     }
-
-    val tr = s.createTrack()
     track.events.foreach {
       case (t, m) => m match {
         case lispy.NoteOff(c, k) =>
@@ -45,7 +43,7 @@ object Loader {
       track <- extract(result, Map.empty)
     } yield {
       val s = new Sequence(Sequence.PPQ, 24)
-      write(track, s)
+      write(track, s.createTrack())
       s
     }
   }

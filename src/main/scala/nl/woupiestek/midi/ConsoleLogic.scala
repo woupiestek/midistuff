@@ -61,7 +61,7 @@ trait Player extends AutoCloseable {
 }
 
 class MidiPlayer extends Player {
-  val sequencer = MidiSystem.getSequencer
+  val sequencer: Sequencer = MidiSystem.getSequencer
   sequencer.open()
   sequencer.addMetaEventListener(new MetaEventListener() {
     def meta(event: MetaMessage): Unit = {
@@ -71,7 +71,7 @@ class MidiPlayer extends Player {
 
   override def play(track: Track): Unit = {
     val s = new Sequence(Sequence.PPQ, 24)
-    Loader.write(track, s)
+    Loader.write(track, s.createTrack())
     sequencer.setSequence(s)
     sequencer.start()
     while (sequencer.isRunning) Thread.`yield`()

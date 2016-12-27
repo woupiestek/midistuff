@@ -1,6 +1,6 @@
 package nl.woupiestek.midi.tagless
 
-class Print extends MidiTrack[String] {
+class Print extends Score[String] {
   override def empty: String = ""
 
   override def append(list: Seq[String]): String = s"seq[${list.mkString(" ")}]"
@@ -20,10 +20,6 @@ class Print extends MidiTrack[String] {
   override def rest(duration: Int): String = s"rest $duration"
 
   override def setProgram(program: Int): String = s"patch $program"
-
-  override def put(key: String, value: String, next: String): String = s"put $key $value\n$next"
-
-  override def get(key: String): String = s"get $key"
 
   override def transpose(keys: Int, track: String): String = s"transpose $keys $track"
 }

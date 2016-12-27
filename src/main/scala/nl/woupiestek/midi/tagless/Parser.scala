@@ -1,17 +1,16 @@
 package nl.woupiestek.midi.tagless
 
-import nl.woupiestek.midi.lispy.{BeginList, EndList}
 import nl.woupiestek.midi.parser.Grammar
-import nl.woupiestek.midi.parser.Grammar.{fail, read}
+import nl.woupiestek.midi.parser.Grammar.fail
 
-class Parser[LToken, Track](implicit d: Tokenizer[LToken], e: MidiTrack[Track]) {
+class Parser[Token, Track](implicit d: Tokenizer[Token], e: Score[Track], f: Memorized[Track]) {
 
-  type TG = Grammar[LToken, Track]
+  type TG = Grammar[Token, Track]
 
   def file: TG = for {
     _ <- d.beginFile
     x <- track
-    _ <- read[LToken]
+    _ <- d.endFile
   } yield x
 
   def scalar(f: (Int, Track) => Track): TG = for {
@@ -20,9 +19,9 @@ class Parser[LToken, Track](implicit d: Tokenizer[LToken], e: MidiTrack[Track]) 
   } yield f(x, y)
 
   def fold(f: Seq[Track] => Track): TG = for {
-    BeginList <- read[LToken]
+    _ <- d.beginList
     ts <- track.oneOrMore
-    EndList <- read[LToken]
+    _ <- d.endList
   } yield f(ts)
 
   val argumentParsers: Map[String, TG] = Map(
@@ -44,8 +43,8 @@ class Parser[LToken, Track](implicit d: Tokenizer[LToken], e: MidiTrack[Track]) 
       x <- d.identifier
       y <- track
       z <- track
-    } yield e.put(x, y, z)),
-    "get" -> d.identifier.map(e.get))
+    } yield f.put(x, y, z)),
+    "get" -> d.identifier.map(f.get))
 
   def track: TG = for {
     x <- d.identifier
