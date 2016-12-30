@@ -20,8 +20,6 @@ object Main extends App {
 
   ConsoleLogic.start()
 
-
-
   def writeFiles(): Unit = {
     for {
       arg <- args
@@ -50,7 +48,7 @@ object Main extends App {
     new OtherSynthesizerWrapper().play(sequence).initialize
   }
 
-  def playFile(name: String) = {
+  def playFile(name: String): Any = {
     val input = Source.fromFile(name).getLines().mkString("\n")
     println(input)
     StringParser.parse(input, NotesAndRestsGrammar.grammar) match {

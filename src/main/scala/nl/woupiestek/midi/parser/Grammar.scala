@@ -13,7 +13,7 @@ final class Grammar[-In, +Out] private(ops: => List[Out \/ (In => Grammar[In, Ou
     })
 
   def map[Out2](f: Out => Out2): Grammar[In, Out2] =
-    new Grammar(options.map(either => either.bimap(f, g => (in: In) => g(in).map(f))))
+    new Grammar(options.map(_.bimap(f, g => (in: In) => g(in).map(f))))
 
   def filter(f: Out => Boolean): Grammar[In, Out] =
     new Grammar[In, Out](options.collect {

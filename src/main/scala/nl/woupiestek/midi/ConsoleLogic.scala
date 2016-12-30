@@ -39,7 +39,7 @@ object ConsoleLogic {
     }
   }
 
-  def start() = {
+  def start(): Unit = {
     val player = new MidiPlayer()
 
     @tailrec def loop(context: Map[String, Track]): Unit = {

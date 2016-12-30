@@ -1,4 +1,9 @@
 MIDI log:
+--- 29/12/16 ---
+
+track als iets wat events genereert?
+
+
 --- 25/10/16 ---
 
 Beter idee van waar dit heen moet:
