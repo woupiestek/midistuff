@@ -1,6 +1,6 @@
 package nl.woupiestek.midi.extended
 
-import javax.sound.midi.{Sequence, ShortMessage, Track}
+import javax.sound.midi.{ Sequence, ShortMessage, Track }
 
 import nl.woupiestek.midi.extended
 import nl.woupiestek.midi.parser.StringParser

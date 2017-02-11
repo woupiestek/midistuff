@@ -24,7 +24,6 @@ trait Score[T] {
   def setChannel(channel: Int, track: T): T
 }
 
-
 trait Memorized[T] {
   def get(key: String): T
 

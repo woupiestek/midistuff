@@ -1,6 +1,6 @@
 package nl.woupiestek.midi.tagless
 
-import nl.woupiestek.midi.lispy.{Track => LTrack, _}
+import nl.woupiestek.midi.lispy.{ Track => LTrack, _ }
 
 object BuildTrack extends Score[LTrack] {
   override def empty: LTrack = LTrack.empty
@@ -25,3 +25,4 @@ object BuildTrack extends Score[LTrack] {
 
   override def transpose(keys: Int, track: LTrack): LTrack = track.transpose(keys)
 }
+

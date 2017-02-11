@@ -1,10 +1,12 @@
 package nl.woupiestek.midi.tagless
 
-import javax.sound.midi.{Track => MidiTrack, _}
+import javax.sound.midi.{ Track => MidiTrack, _ }
 
 import com.sun.media.sound.MidiUtils
 
-trait Message[M] {
+trait Track[T, M] {
+  def add(message: M, time: Long, track: T): T
+
   def noteOn(channel: Int, key: Int, velocity: Int): M
 
   def noteOff(channel: Int, key: Int): M
@@ -14,7 +16,8 @@ trait Message[M] {
   def setTempo(bpm: Int): M
 }
 
-object MessageInstance extends Message[MidiMessage] {
+object TrackInstance extends Track[MidiTrack => Unit, MidiMessage] {
+
   override def noteOn(channel: Int, key: Int, velocity: Int): MidiMessage =
     new ShortMessage(ShortMessage.NOTE_ON, channel, key, velocity)
 
@@ -28,16 +31,10 @@ object MessageInstance extends Message[MidiMessage] {
     val data = BigInt(60000000 / bpm).toByteArray
     new MetaMessage(MidiUtils.META_TEMPO_TYPE, data, data.length)
   }
-}
 
-trait Track[T, M] {
-  def add(message: M, time: Long, track: T): T
-}
-
-object TrackInstance extends Track[MidiTrack => Unit, MidiMessage] {
   override def add(message: MidiMessage, time: Long, track: (MidiTrack) => Unit): (MidiTrack) => Unit = x => {
-    x.add(new MidiEvent(message, time))
     track(x)
+    x.add(new MidiEvent(message, time))
   }
 }
 

@@ -1,3 +1,4 @@
+
 name := "midistuff"
 
 version := "1.0"
@@ -11,7 +12,8 @@ connectInput in run := true
 
 libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.3.0-M6",
-  "org.scalatest" % "scalatest_2.11" % "3.0.0"
-)
+  "org.scalatest" % "scalatest_2.11" % "3.0.0" % "test")
+
+scalariformSettings
 
 scalacOptions ++= Seq("-feature", "-deprecation")

@@ -2,15 +2,14 @@ package nl.woupiestek.midi
 
 import javax.sound.midi._
 
-import nl.woupiestek.midi.lispy.Parser.{Get, Play, Put, Result}
-import nl.woupiestek.midi.lispy.{Loader, Parser, Tokenizer, Track}
+import nl.woupiestek.midi.lispy.Parser.{ Get, Play, Put, Result }
+import nl.woupiestek.midi.lispy.{ Loader, Parser, Tokenizer, Track }
 import nl.woupiestek.midi.parser.StringParser
 
 import scala.annotation.tailrec
 import scala.io.StdIn
 
 object ConsoleLogic {
-
 
   def next(input: String, context: Map[String, Track], player: Player): Map[String, Track] = {
 
@@ -44,7 +43,7 @@ object ConsoleLogic {
 
     @tailrec def loop(context: Map[String, Track]): Unit = {
       val input = StdIn.readLine("> ")
-      if(null == input) ()
+      if (null == input) ()
       else if (input == "exit") player.close()
       else loop(next(input, context, player))
     }
@@ -54,7 +53,6 @@ object ConsoleLogic {
   }
 
 }
-
 
 trait Player extends AutoCloseable {
   def play(track: Track): Unit

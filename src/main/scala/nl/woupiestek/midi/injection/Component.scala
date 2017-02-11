@@ -1,7 +1,7 @@
 package nl.woupiestek.midi.injection
 
 import scala.reflect.ClassTag
-import scala.util.{Success, Try}
+import scala.util.{ Success, Try }
 
 sealed trait Component[T] {
   def flatMap[U](f: T => Component[U]): Component[U]

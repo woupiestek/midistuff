@@ -48,7 +48,6 @@ object Parser {
       EndFile <- read[Token]
     } yield x)
 
-
   def track: TG = {
 
     def scalar(f: (Track, Int) => Track): TG = for {
@@ -86,8 +85,8 @@ object Parser {
         x <- collect[Token, String] { case Identifier(x) => x }
         y <- track
         z <- track
-      } yield y.flatMap(y2 => Put(x,y2,z))),
-      "get" -> collect { case Identifier(x) => Get(x,Play) })
+      } yield y.flatMap(y2 => Put(x, y2, z))),
+      "get" -> collect { case Identifier(x) => Get(x, Play) })
 
     for {
       x <- collect[Token, String] { case Identifier(name) => name }

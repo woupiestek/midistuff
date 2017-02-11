@@ -1,7 +1,7 @@
 package nl.woupiestek.midi.tagless
 
 import nl.woupiestek.midi.parser.Grammar
-import nl.woupiestek.midi.parser.Grammar.{collect, fail, read}
+import nl.woupiestek.midi.parser.Grammar.{ collect, fail, read }
 
 trait Tokenizer[T] {
   def number: Grammar[T, Int]

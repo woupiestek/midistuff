@@ -1,6 +1,6 @@
 package nl.woupiestek.midi
 
-import javax.sound.midi.{Sequence, ShortMessage}
+import javax.sound.midi.{ Sequence, ShortMessage }
 
 sealed trait MidiMessage
 

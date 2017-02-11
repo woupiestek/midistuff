@@ -1,14 +1,13 @@
 package nl.woupiestek.midi.lispy
 
-import javax.sound.midi.{Track => MidiTrack, _}
+import javax.sound.midi.{ Track => MidiTrack, _ }
 
 import nl.woupiestek.midi.lispy
-import nl.woupiestek.midi.lispy.Parser.{Get, Play, Put, Result}
+import nl.woupiestek.midi.lispy.Parser.{ Get, Play, Put, Result }
 import nl.woupiestek.midi.parser.StringParser
 
 import scala.annotation.tailrec
 import scala.io.Source
-
 
 object Loader {
   def write(track: lispy.Track, tr: MidiTrack): Unit = {
@@ -38,7 +37,7 @@ object Loader {
   }
 
   def load(name: String): Option[Sequence] = {
-    val input = Source.fromFile(name).getLines().mkString("\n")
+    val input = Source.fromFile(name).getLines().mkString
     for {
       result <- StringParser.parse(input, lispy.Parser.file)
       track <- extract(result, Map.empty)
@@ -48,6 +47,5 @@ object Loader {
       s
     }
   }
-
 
 }

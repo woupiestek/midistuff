@@ -2,7 +2,7 @@ package nl.woupiestek.midi
 
 import javax.sound.midi._
 
-import nl.woupiestek.midi.injection.{Component, Container}
+import nl.woupiestek.midi.injection.{ Component, Container }
 
 class OtherSynthesizerWrapper {
 

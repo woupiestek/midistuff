@@ -3,7 +3,7 @@ package nl.woupiestek.midi.injection
 import scala.reflect.ClassTag
 import scala.util.Try
 
-class SimpleContainer private(dependencies: Map[Class[_], _]) extends Container {
+class SimpleContainer private (dependencies: Map[Class[_], _]) extends Container {
   override def dependency[T](key: Class[T]): Try[T] = {
     Try(dependencies(key).asInstanceOf[T])
   }

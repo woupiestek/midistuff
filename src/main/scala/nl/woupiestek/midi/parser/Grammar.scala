@@ -1,8 +1,8 @@
 package nl.woupiestek.midi.parser
 
-import scalaz.{-\/, \/, \/-}
+import scalaz.{ -\/, \/, \/- }
 
-final class Grammar[-In, +Out] private(ops: => List[Out \/ (In => Grammar[In, Out])]) {
+final class Grammar[-In, +Out] private (ops: => List[Out \/ (In => Grammar[In, Out])]) {
 
   lazy val options: List[\/[Out, (In) => Grammar[In, Out]]] = ops
 
@@ -67,11 +67,10 @@ trait Folder[In, Out, P] {
   def onRead(read: In => P, or: => P): P
 
   final def fold(grammar: Grammar[In, Out]): P = {
-    def p(options: List[Out \/ (In => Grammar
-      [In, Out])]): P = options match {
+    def p(options: List[Out \/ (In => Grammar[In, Out])]): P = options match {
       case Nil => onFail
-      case -\/(out) :: tail => onPoint(out,p(tail))
-      case \/-(read) :: tail => onRead(in => p(read(in).options),p(tail))
+      case -\/(out) :: tail => onPoint(out, p(tail))
+      case \/-(read) :: tail => onRead(in => p(read(in).options), p(tail))
     }
     p(grammar.options)
   }

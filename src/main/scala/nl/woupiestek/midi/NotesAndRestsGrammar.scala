@@ -35,7 +35,7 @@ object NotesAndRestsGrammar {
         - <- char('n')
         pitch <- number
         length <- number
-      } yield Track(length, (0, NoteOn(0, pitch, 64)) ::(length, NoteOff(0, pitch)) :: Nil)
+      } yield Track(length, (0, NoteOn(0, pitch, 64)) :: (length, NoteOff(0, pitch)) :: Nil)
 
       def rest: G[Track] = for {
         _ <- char('r')
