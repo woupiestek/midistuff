@@ -45,7 +45,8 @@ final class Grammar[-In, +Out] private (ops: => List[Out \/ (In => Grammar[In, O
     grammar.options.flatMap {
       case -\/(out2) => List(-\/(out2))
       case \/-(read2) => flatMap(out => andThen(read2(out))).options
-    })
+    }
+  )
 
 }
 

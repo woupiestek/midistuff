@@ -1,9 +1,9 @@
 package nl.woupiestek.midi
 
 import java.io.File
+import javax.sound.midi.MidiSystem.getSynthesizer
 import javax.sound.midi._
 
-import nl.woupiestek.midi.injection.SimpleContainer
 import nl.woupiestek.midi.lispy.Loader
 import nl.woupiestek.midi.parser.StringParser
 
@@ -11,12 +11,6 @@ import scala.io.Source
 import scala.util.Random
 
 object Main extends App {
-
-  //play(MidiSystem.getSequencer, args.flatMap(Loader.load))
-
-  implicit val container = SimpleContainer.add(MidiSystem.getSynthesizer)
-
-  //randomTestSounds(20)
 
   ConsoleLogic.start()
 
@@ -26,6 +20,8 @@ object Main extends App {
       sequence <- Loader.load(arg)
     } MidiSystem.write(sequence, 0, new File(s"$arg.mid"))
   }
+
+  val wrapper = new OtherSynthesizerWrapper(getSynthesizer)
 
   def randomTestSounds(count: Int): Unit = {
     val random = new Random()
@@ -45,7 +41,7 @@ object Main extends App {
       track <- randomNote
     } yield track)
 
-    new OtherSynthesizerWrapper().play(sequence).initialize
+    wrapper.play(sequence)
   }
 
   def playFile(name: String): Any = {
@@ -57,7 +53,7 @@ object Main extends App {
         //the time unit of the synthesizer is the millisecond
         //which is too small for the files.
         val slower = score.map { case (t, e) => (100 * t, e) }
-        new OtherSynthesizerWrapper().play(slower).initialize
+        new OtherSynthesizerWrapper(getSynthesizer).play(slower)
     }
   }
 

@@ -1,5 +1,6 @@
 package nl.woupiestek.midi
 
+import javax.sound.midi.MidiSystem.getSequencer
 import javax.sound.midi._
 
 import nl.woupiestek.midi.lispy.Parser.{ Get, Play, Put, Result }
@@ -59,13 +60,9 @@ trait Player extends AutoCloseable {
 }
 
 class MidiPlayer extends Player {
-  val sequencer: Sequencer = MidiSystem.getSequencer
+  val sequencer: Sequencer = getSequencer
   sequencer.open()
-  sequencer.addMetaEventListener(new MetaEventListener() {
-    def meta(event: MetaMessage): Unit = {
-      if (event.getType == 47) sequencer.stop()
-    }
-  })
+  sequencer.addMetaEventListener((event: MetaMessage) => if (event.getType == 47) sequencer.stop())
 
   override def play(track: Track): Unit = {
     val s = new Sequence(Sequence.PPQ, 24)

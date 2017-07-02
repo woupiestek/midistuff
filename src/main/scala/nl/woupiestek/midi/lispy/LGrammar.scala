@@ -86,7 +86,8 @@ object Parser {
         y <- track
         z <- track
       } yield y.flatMap(y2 => Put(x, y2, z))),
-      "get" -> collect { case Identifier(x) => Get(x, Play) })
+      "get" -> collect { case Identifier(x) => Get(x, Play) }
+    )
 
     for {
       x <- collect[Token, String] { case Identifier(name) => name }

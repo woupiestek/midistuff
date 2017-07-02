@@ -2,17 +2,14 @@ package nl.woupiestek.midi
 
 import javax.sound.midi._
 
-import nl.woupiestek.midi.injection.{ Component, Container }
-
-class OtherSynthesizerWrapper {
-
-  val synthesizer: Component[Synthesizer] = Container.inject[Synthesizer]
+class OtherSynthesizerWrapper(synthesizer: Synthesizer) {
 
   val million = 1000000l
 
-  def play(score: List[(Int, MidiMessage)]): Component[Unit] = {
+  def play(score: List[(Int, MidiMessage)]): Unit = {
     def await(time: Long): Unit = Some((time - System.nanoTime()) / million).filter(_ > 0).foreach(Thread.sleep)
-    def on(s2: List[(Long, MidiMessage)])(synthesizer: Synthesizer): Unit = {
+
+    def on(s2: List[(Long, MidiMessage)]): Unit = {
       val channels = synthesizer.getChannels
       synthesizer.open()
       for ((time, event) <- s2) {
@@ -25,9 +22,10 @@ class OtherSynthesizerWrapper {
       }
       synthesizer.close()
     }
+
     val ctm = System.nanoTime()
     val s2 = score.sortBy[Int](_._1).map { case (t, e) => (t * million + ctm, e) }
-    synthesizer.map(on(s2))
+    on(s2)
   }
 
 }
