@@ -1,9 +1,11 @@
 package nl.woupiestek.midi
 
-sealed trait MidiMessage
+trait MidiMessage[M] {
 
-case class NoteOn(channel: Int, pitch: Int, velocity: Int) extends MidiMessage
+  def noteOn(channel: Int, pitch: Int, velocity: Int): M
 
-case class NoteOff(channel: Int, pitch: Int) extends MidiMessage
+  def noteOff(channel: Int, pitch: Int): M
 
-case class SetProgram(channel: Int, program: Int) extends MidiMessage
+  def setProgram(channel: Int, program: Int): M
+
+}

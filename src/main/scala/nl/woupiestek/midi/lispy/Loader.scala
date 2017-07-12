@@ -1,5 +1,7 @@
 package nl.woupiestek.midi.lispy
 
+import javax.sound.midi.Sequence.PPQ
+import javax.sound.midi.ShortMessage.{ NOTE_OFF, NOTE_ON, PROGRAM_CHANGE }
 import javax.sound.midi.{ Track => MidiTrack, _ }
 
 import nl.woupiestek.midi.lispy
@@ -19,11 +21,11 @@ object Loader {
     track.events.foreach {
       case (t, m) => m match {
         case lispy.NoteOff(c, k) =>
-          tr.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, c, k, 0), t))
+          tr.add(new MidiEvent(new ShortMessage(NOTE_OFF, c, k, 0), t))
         case lispy.NoteOn(c, k, v) =>
-          tr.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, c, k, v), t))
+          tr.add(new MidiEvent(new ShortMessage(NOTE_ON, c, k, v), t))
         case lispy.ProgramChange(c, p) =>
-          tr.add(new MidiEvent(new ShortMessage(ShortMessage.PROGRAM_CHANGE, c, p, 0), t))
+          tr.add(new MidiEvent(new ShortMessage(PROGRAM_CHANGE, c, p, 0), t))
         case lispy.Tempo(bpm) =>
           tr.add(new MidiEvent(tempoMessage(bpm), t))
       }
@@ -42,7 +44,7 @@ object Loader {
       result <- StringParser.parse(input, lispy.Parser.file)
       track <- extract(result, Map.empty)
     } yield {
-      val s = new Sequence(Sequence.PPQ, 24)
+      val s = new Sequence(PPQ, 24)
       write(track, s.createTrack())
       s
     }
