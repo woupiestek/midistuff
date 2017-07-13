@@ -1,12 +1,11 @@
 package nl.woupiestek.midi.tagless
 
-import javax.sound.midi.{ Track => MidiTrack, _ }
+import javax.sound.midi.ShortMessage.{ NOTE_OFF, NOTE_ON, PROGRAM_CHANGE }
+import javax.sound.midi.{ MetaMessage, MidiMessage, ShortMessage }
 
-import com.sun.media.sound.MidiUtils
+import com.sun.media.sound.MidiUtils.META_TEMPO_TYPE
 
-trait Track[T, M] {
-  def add(message: M, time: Long, track: T): T
-
+trait Track[M] {
   def noteOn(channel: Int, key: Int, velocity: Int): M
 
   def noteOff(channel: Int, key: Int): M
@@ -16,25 +15,20 @@ trait Track[T, M] {
   def setTempo(bpm: Int): M
 }
 
-object TrackInstance extends Track[MidiTrack => Unit, MidiMessage] {
+object TrackInstance extends Track[MidiMessage] {
 
   override def noteOn(channel: Int, key: Int, velocity: Int): MidiMessage =
-    new ShortMessage(ShortMessage.NOTE_ON, channel, key, velocity)
+    new ShortMessage(NOTE_ON, channel, key, velocity)
 
   override def noteOff(channel: Int, key: Int): MidiMessage =
-    new ShortMessage(ShortMessage.NOTE_OFF, channel, key, 0)
+    new ShortMessage(NOTE_OFF, channel, key, 0)
 
   override def setProgram(channel: Int, program: Int): MidiMessage =
-    new ShortMessage(ShortMessage.PROGRAM_CHANGE, channel, program, 0)
+    new ShortMessage(PROGRAM_CHANGE, channel, program, 0)
 
   override def setTempo(bpm: Int): MidiMessage = {
     val data = BigInt(60000000 / bpm).toByteArray
-    new MetaMessage(MidiUtils.META_TEMPO_TYPE, data, data.length)
-  }
-
-  override def add(message: MidiMessage, time: Long, track: (MidiTrack) => Unit): (MidiTrack) => Unit = x => {
-    track(x)
-    x.add(new MidiEvent(message, time))
+    new MetaMessage(META_TEMPO_TYPE, data, data.length)
   }
 }
 
