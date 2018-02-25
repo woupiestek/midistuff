@@ -1,7 +1,6 @@
 package nl.woupiestek.midi.tagless
 
-import nl.woupiestek.midi.parser.Grammar
-import nl.woupiestek.midi.parser.Grammar.{ collect, fail, read }
+import nl.woupiestek.midi.parser.Rule._
 
 trait Tokenizer[T] {
   def number: Grammar[T, Int]
@@ -22,11 +21,11 @@ object StringTokenizer extends Tokenizer[Option[Char]] {
   override def number: Grammar[Option[Char], Int] = separate {
     read[Option[Char]].flatMap {
       case Some('-') =>
-        collect[Option[Char], Char] { case Some(x) if Character.isDigit(x) => x }
+        read[Option[Char]].collect { case Some(x) if Character.isDigit(x) => x }
           .oneOrMore
           .map(digits => -digits.mkString.toInt)
       case Some(first) if ('0' to '9').contains(first) =>
-        collect[Option[Char], Char] {
+        read[Option[Char]].collect {
           case Some(c) if ('0' to '9').contains(c) => c
         }.zeroOrMore.map {
           digits => (first :: digits).mkString.toInt
@@ -38,20 +37,20 @@ object StringTokenizer extends Tokenizer[Option[Char]] {
   override def identifier: Grammar[Option[Char], String] = separate {
     read[Option[Char]].flatMap {
       case Some(x) if Character.isAlphabetic(x) => for {
-        digits <- collect[Option[Char], Char] {
+        digits <- read[Option[Char]].collect {
           case Some(c) if !reserved.contains(c) => c
         }.zeroOrMore
       } yield (x :: digits).mkString
     }
   }
 
-  override def beginList: Grammar[Option[Char], Unit] = separate(collect { case Some('[') => () })
+  override def beginList: Grammar[Option[Char], Unit] = separate(read.collect { case Some('[') => () })
 
-  override def endList: Grammar[Option[Char], Unit] = separate(collect { case Some(']') => () })
+  override def endList: Grammar[Option[Char], Unit] = separate(read.collect { case Some(']') => () })
 
   override def beginFile: Grammar[Option[Char], Unit] = identifier.collect { case "midistuff-file-version-0.1" => () }
 
-  override def endFile: Grammar[Option[Char], Unit] = separate(collect { case None => () })
+  override def endFile: Grammar[Option[Char], Unit] = separate(read.collect { case None => () })
 
   private type G[T] = Grammar[Option[Char], T]
 
@@ -64,7 +63,7 @@ object StringTokenizer extends Tokenizer[Option[Char]] {
 
   def space: G[Unit] = read[Option[Char]].filter(_.forall(Character.isWhitespace)).map(_ => ())
 
-  def separator: G[Unit] = (space | comment).zeroOrMore.map(_ => ())
+  def separator: G[Unit] = (space or comment).zeroOrMore.map(_ => ())
 
   def separate[T](x: G[T]): G[T] = for {
     y <- x

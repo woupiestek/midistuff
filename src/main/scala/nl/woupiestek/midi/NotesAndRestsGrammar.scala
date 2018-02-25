@@ -1,7 +1,6 @@
 package nl.woupiestek.midi
 
-import nl.woupiestek.midi.parser.Grammar
-import nl.woupiestek.midi.parser.Grammar.read
+import nl.woupiestek.midi.parser.Rule._
 
 object NotesAndRestsGrammar {
 
@@ -33,7 +32,7 @@ object NotesAndRestsGrammar {
       } yield (x :: y).mkString.toInt
 
       def note: G[Track[M]] = for {
-        - <- char('n')
+        _ <- char('n')
         pitch <- number
         length <- number
       } yield Track(length, (0, M.noteOn(0, pitch, 64)) :: (length, M.noteOff(0, pitch)) :: Nil)
@@ -55,7 +54,7 @@ object NotesAndRestsGrammar {
         _ <- char(']')
       } yield (x :: y).foldLeft(empty)(_ stack _)
 
-      for (nors <- (note | rest | poly).zeroOrMore) yield nors.foldLeft(empty)(_ append _)
+      for (nors <- (note or rest or poly).zeroOrMore) yield nors.foldLeft(empty)(_ append _)
     }
 
     sequence.map(_.events.sortBy { case (t, _) => t })

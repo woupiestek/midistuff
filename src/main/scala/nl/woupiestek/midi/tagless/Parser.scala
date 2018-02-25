@@ -1,7 +1,6 @@
 package nl.woupiestek.midi.tagless
 
-import nl.woupiestek.midi.parser.Grammar
-import nl.woupiestek.midi.parser.Grammar.fail
+import nl.woupiestek.midi.parser.Rule._
 
 class Parser[Token, Track](implicit d: Tokenizer[Token], e: Score[Track], f: Memorized[Track]) {
 

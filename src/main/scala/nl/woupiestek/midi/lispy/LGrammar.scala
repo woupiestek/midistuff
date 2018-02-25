@@ -1,7 +1,7 @@
 package nl.woupiestek.midi.lispy
 
-import nl.woupiestek.midi.parser.Grammar
-import nl.woupiestek.midi.parser.Grammar._
+import nl.woupiestek.midi.parser.Rule
+import nl.woupiestek.midi.parser.Rule._
 
 sealed trait Token
 
@@ -39,9 +39,7 @@ object Parser {
     override def flatMap(f: (Track) => Result): Result = copy(next = next.flatMap(f))
   }
 
-  //case class Result(track: Track, context: Map[String, Track] = Map.empty)
-
-  def file: Grammar[Option[Char], Result] =
+  def file: Rule.Grammar[Option[Char], Result] =
     Tokenizer.token andThen (for {
       BeginFile <- read[Token]
       x <- track
@@ -49,9 +47,10 @@ object Parser {
     } yield x)
 
   def track: TG = {
+    val number: Grammar[Token, Int] = read[Token].collect { case Number(x) => x }
 
     def scalar(f: (Track, Int) => Track): TG = for {
-      x <- collect[Token, Int] { case Number(w) => w }
+      x <- number
       y <- track
     } yield y.flatMap(track => Play(f(track, x)))
 
@@ -66,14 +65,16 @@ object Parser {
       } yield f(u, v)
     }
 
+    val identifier: Grammar[Token, String] = read[Token].collect { case Identifier(x) => x }
+
     val argumentParsers: Map[String, TG] = Map(
       "note" -> (for {
-        key <- collect[Token, Int] { case Number(x) => x }
-        duration <- collect[Token, Int] { case Number(x) => x }
+        key <- number
+        duration <- number
       } yield Play(Track(duration, List((0, NoteOn(0, key)), (duration, NoteOff(0, key)))))),
-      "rest" -> collect { case Number(d) => Play(Track(d, Nil)) },
-      "patch" -> collect { case Number(p) => Play(Track(0, List((0, ProgramChange(0, p))))) },
-      "tempo" -> collect { case Number(t) => Play(Track(0, List((0, Tempo(t))))) },
+      "rest" -> number.map(d => Play(Track(d, Nil))),
+      "patch" -> number.map(p => Play(Track(0, List((0, ProgramChange(0, p)))))),
+      "tempo" -> number.map(t => Play(Track(0, List((0, Tempo(t)))))),
       "seq" -> fold(_ append _),
       "chord" -> fold(_ stack _),
       "piu" -> scalar(_ piu _),
@@ -82,15 +83,15 @@ object Parser {
       "channel" -> scalar(_ toChannel _),
       "repeat" -> scalar((y, x) => (1 to x).map(_ => y).foldLeft(Track.empty)(_ append _)),
       "put" -> (for {
-        x <- collect[Token, String] { case Identifier(x) => x }
+        x <- identifier
         y <- track
         z <- track
       } yield y.flatMap(y2 => Put(x, y2, z))),
-      "get" -> collect { case Identifier(x) => Get(x, Play) }
+      "get" -> identifier.map(Get(_, Play))
     )
 
     for {
-      x <- collect[Token, String] { case Identifier(name) => name }
+      x <- identifier
       y <- argumentParsers.getOrElse(x, fail)
     } yield y
   }
@@ -102,7 +103,7 @@ object Tokenizer {
   def token: TT = for {
     option <- read[Option[Char]]
     t <- option match {
-      case None => point(EndFile)
+      case None => write[Option[Char], Token](EndFile)
       case Some(c) => for {
         t <- rest(c)
         _ <- separator
@@ -113,19 +114,19 @@ object Tokenizer {
   private def reserved = Set('[', ']', ';', ' ', '\n', '\r', '\t', '\f')
 
   def rest(first: Char): TT = {
-    if ('[' == first) point(BeginList)
-    else if (']' == first) point(EndList)
+    if ('[' == first) write(BeginList)
+    else if (']' == first) write(EndList)
     else if ('-' == first) {
       for {
-        digits <- collect[Option[Char], Char] { case Some(c) if ('0' to '9').contains(c) => c }.oneOrMore
+        digits <- read[Option[Char]].collect[Char] { case Some(c) if ('0' to '9').contains(c) => c }.oneOrMore
       } yield Number(-digits.mkString.toInt)
     } else if (('0' to '9').contains(first)) {
       for {
-        digits <- collect[Option[Char], Char] { case Some(c) if ('0' to '9').contains(c) => c }.zeroOrMore
+        digits <- read[Option[Char]].collect[Char] { case Some(c) if ('0' to '9').contains(c) => c }.zeroOrMore
       } yield Number((first :: digits).mkString.toInt)
     } else if (Character.isAlphabetic(first)) {
       for {
-        digits <- collect[Option[Char], Char] { case Some(c) if !reserved.contains(c) => c }.zeroOrMore
+        digits <- read[Option[Char]].collect[Char] { case Some(c) if !reserved.contains(c) => c }.zeroOrMore
       } yield Identifier((first :: digits).mkString)
     } else fail
   }
@@ -137,7 +138,7 @@ object Tokenizer {
     _ <- read[Option[Char]].filter(option => !option.contains('\n') && !option.contains('\r')).zeroOrMore
   } yield ()
 
-  def space: TU = collect[Option[Char], Unit] { case Some(c) if Character.isWhitespace(c) => () }
+  def space: TU = read[Option[Char]].collect[Unit] { case Some(c) if Character.isWhitespace(c) => () }
 
-  def separator: TU = (space | comment).zeroOrMore.map(_ => ())
+  def separator: TU = (space or comment).zeroOrMore.map(_ => ())
 }
