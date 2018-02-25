@@ -112,22 +112,19 @@ object Tokenizer {
 
   private def reserved = Set('[', ']', ';', ' ', '\n', '\r', '\t', '\f')
 
-  def rest(first: Char): TT = {
-    if ('[' == first) write(BeginList)
-    else if (']' == first) write(EndList)
-    else if ('-' == first) {
-      for {
-        digits <- read[Option[Char]].collect[Char] { case Some(c) if ('0' to '9').contains(c) => c }.oneOrMore
-      } yield Number(-digits.mkString.toInt)
-    } else if (('0' to '9').contains(first)) {
-      for {
-        digits <- read[Option[Char]].collect[Char] { case Some(c) if ('0' to '9').contains(c) => c }.zeroOrMore
-      } yield Number((first :: digits).mkString.toInt)
-    } else if (Character.isAlphabetic(first)) {
-      for {
-        digits <- read[Option[Char]].collect[Char] { case Some(c) if !reserved.contains(c) => c }.zeroOrMore
-      } yield Identifier((first :: digits).mkString)
-    } else fail
+  def rest: Char => TT = {
+    case '[' => write(BeginList)
+    case ']' => write(EndList)
+    case '-' => for {
+      digits <- read[Option[Char]].collect[Char] { case Some(c) if ('0' to '9').contains(c) => c }.oneOrMore
+    } yield Number(-digits.mkString.toInt)
+    case first if ('0' to '9').contains(first) => for {
+      digits <- read[Option[Char]].collect[Char] { case Some(c) if ('0' to '9').contains(c) => c }.zeroOrMore
+    } yield Number((first :: digits).mkString.toInt)
+    case first if Character.isAlphabetic(first) => for {
+      digits <- read[Option[Char]].collect[Char] { case Some(c) if !reserved.contains(c) => c }.zeroOrMore
+    } yield Identifier((first :: digits).mkString)
+    case _ => fail
   }
 
   type TU = Grammar[Option[Char], Unit]

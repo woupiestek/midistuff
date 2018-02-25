@@ -16,8 +16,6 @@ object Rule {
 
   def read[I]: Grammar[I, I] = Grammar(List(Read[I, I](i => List(Write(i)))))
 
-  //def lift[I,O](f: I => List[Rule[I, O]]): Grammar[I,O] = Grammar(List(Read(f)))
-
   def fail[I, O]: Grammar[I, O] = Grammar(Nil)
 
   case class Grammar[I, O](rules: List[Rule[I, O]]) {
@@ -50,6 +48,8 @@ object Rule {
     def collect[O2](f: PartialFunction[O, O2]): Grammar[I, O2] = flatMap((o: O) => if (f.isDefinedAt(o)) write(f(o)) else fail)
 
     def filter(f: O => Boolean): Grammar[I, O] = flatMap((o: O) => if (f(o)) write(o) else fail)
+
+    def filterNot(f: O => Boolean): Grammar[I, O] = flatMap((o: O) => if (f(o)) fail else write(o))
 
     def withFilter(f: O => Boolean): Grammar[I, O] = filter(f)
 
