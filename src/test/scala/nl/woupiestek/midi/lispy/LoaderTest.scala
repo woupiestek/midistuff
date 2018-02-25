@@ -45,8 +45,7 @@ class LoaderTest extends FunSuite {
       ("-123", Number(-123)),
       ("john", Identifier("john")),
       ("[", BeginList),
-      ("]", EndList)
-    ).map {
+      ("]", EndList)).map {
         case (string, token) => (StringParser.parse(string, Tokenizer.token), token)
       }.filterNot {
         case (option, token) => option.contains(token)

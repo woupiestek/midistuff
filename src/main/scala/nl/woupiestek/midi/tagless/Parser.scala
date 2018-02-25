@@ -43,8 +43,7 @@ class Parser[Token, Track](implicit d: Tokenizer[Token], e: Score[Track], f: Mem
       y <- track
       z <- track
     } yield f.put(x, y, z)),
-    "get" -> d.identifier.map(f.get)
-  )
+    "get" -> d.identifier.map(f.get))
 
   def track: TG = for {
     x <- d.identifier

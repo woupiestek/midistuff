@@ -64,8 +64,7 @@ object Rule {
     def andThen[O2](next: Grammar[O, O2]): Grammar[I, O2] =
       Grammar[I, O2](next.foldList[Rule[I, O2]](
         (o: O2) => List(Write(o)),
-        (f: O => List[Rule[I, O2]]) => foldList(f, (g: I => List[Rule[I, O2]]) => List(Read(g)))
-      ))
+        (f: O => List[Rule[I, O2]]) => foldList(f, (g: I => List[Rule[I, O2]]) => List(Read(g)))))
   }
 
 }

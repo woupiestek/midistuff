@@ -1,3 +1,4 @@
+import scalariform.formatter.preferences._
 
 name := "midistuff"
 
@@ -13,7 +14,5 @@ connectInput in run := true
 libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.2.20",
   "org.scalatest" %% "scalatest" % "3.0.0" % "test")
-
-scalariformSettings
 
 scalacOptions ++= Seq("-feature", "-deprecation")

@@ -19,8 +19,7 @@ object StringParser {
       g => {
         case Nil => g(None)(Nil)
         case h :: t => g(Some(h))(t)
-      }
-    )
+      })
     sub(input.toList)
   }
 }

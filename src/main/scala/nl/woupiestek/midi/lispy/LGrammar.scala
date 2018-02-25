@@ -87,8 +87,7 @@ object Parser {
         y <- track
         z <- track
       } yield y.flatMap(y2 => Put(x, y2, z))),
-      "get" -> identifier.map(Get(_, Play))
-    )
+      "get" -> identifier.map(Get(_, Play)))
 
     for {
       x <- identifier
