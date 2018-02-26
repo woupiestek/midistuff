@@ -1,18 +1,18 @@
 package nl.woupiestek.midi.extended
 
+import java.lang.Character._
+
 import nl.woupiestek.midi.extended.ESequence.Element
 import nl.woupiestek.midi.parser.Rule._
 
 object EGrammar {
 
-  type G[T] = Grammar[Option[Char], T]
+  type G[T] = Grammar[Char, T]
 
   def sequence: G[ESequence] = {
 
     def element: G[Element] = {
-      def number: G[Int] = spaced(read[Option[Char]].collect[Char] {
-        case Some(n) if ('0' to '9').contains(n) => n
-      }.oneOrMore).map(_.mkString.toInt)
+      def number: G[Int] = spaced(read[Char].filter(('0' to '9').contains).oneOrMore).map(_.mkString.toInt)
 
       def note: G[Element] = for {
         _ <- spaced(char('n'))
@@ -55,21 +55,17 @@ object EGrammar {
       } yield Put(x, y, z)
     }
 
-    def identifier: G[String] = spaced(read[Option[Char]].collect[Char] {
-      case Some(char) if ('A' to 'Z').union('a' to 'z').contains(char) => char
-    }.oneOrMore).map(_.mkString)
+    def identifier: G[String] = spaced(read[Char].filter(isLetter).oneOrMore).map(_.mkString)
 
     def spaced[T](g: G[T]): G[T] = {
-      def space = read[Option[Char]].collect {
-        case Some(char) if " \n\r\t\f".contains(char) => ()
-      }.zeroOrMore.map(_ => ())
+      def space = read[Char].filter(isWhitespace).zeroOrMore.map(_ => ())
       for {
         x <- g
         _ <- space
       } yield x
     }
 
-    def char(c: Char): G[Unit] = read[Option[Char]].collect { case Some(x) if x == c => () }
+    def char(c: Char): G[Unit] = read[Char].collect { case x if x == c => () }
 
     put or element.zeroOrMore.map(Elements)
   }

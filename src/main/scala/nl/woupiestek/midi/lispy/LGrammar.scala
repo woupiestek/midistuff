@@ -1,5 +1,7 @@
 package nl.woupiestek.midi.lispy
 
+import java.lang.Character._
+
 import nl.woupiestek.midi.parser.Rule
 import nl.woupiestek.midi.parser.Rule._
 
@@ -39,9 +41,9 @@ object Parser {
     override def flatMap(f: (Track) => Result): Result = copy(next = next.flatMap(f))
   }
 
-  def file: Rule.Grammar[Option[Char], Result] =
+  def file: Rule.Grammar[Char, Result] =
     Tokenizer.token andThen (for {
-      BeginFile <- read[Token]
+      BeginFile <- read[Token] //why does this do anything?
       x <- track
       EndFile <- read[Token]
     } yield x)
@@ -97,44 +99,35 @@ object Parser {
 }
 
 object Tokenizer {
-  type TT = Grammar[Option[Char], Token]
+  type TT = Grammar[Char, Token]
 
-  def token: TT = for {
-    option <- read[Option[Char]]
-    t <- option match {
-      case None => write[Option[Char], Token](EndFile)
-      case Some(c) => for {
-        t <- rest(c)
-        _ <- separator
-      } yield t
-    }
-  } yield t
+  def token: TT = (for {
+    c <- read[Char]
+    t <- rest(c)
+    _ <- separator
+  } yield t) or write(EndFile)
 
-  private def reserved = Set('[', ']', ';', ' ', '\n', '\r', '\t', '\f')
+  private val reserved = Set('[', ']', ';', ' ', '\n', '\r', '\t', '\f')
+  private val digit = read[Char].filter(('0' to '9').contains)
 
   def rest: Char => TT = {
     case '[' => write(BeginList)
     case ']' => write(EndList)
-    case '-' => for {
-      digits <- read[Option[Char]].collect[Char] { case Some(c) if ('0' to '9').contains(c) => c }.oneOrMore
-    } yield Number(-digits.mkString.toInt)
-    case first if ('0' to '9').contains(first) => for {
-      digits <- read[Option[Char]].collect[Char] { case Some(c) if ('0' to '9').contains(c) => c }.zeroOrMore
-    } yield Number((first :: digits).mkString.toInt)
-    case first if Character.isAlphabetic(first) => for {
-      digits <- read[Option[Char]].collect[Char] { case Some(c) if !reserved.contains(c) => c }.zeroOrMore
-    } yield Identifier((first :: digits).mkString)
+    case '-' => digit.oneOrMore.map(digits => Number(-digits.mkString.toInt))
+    case first if isDigit(first) => digit.zeroOrMore.map(digits => Number((first :: digits).mkString.toInt))
+    case first if isLetter(first) =>
+      read[Char].filterNot(reserved.contains).zeroOrMore.map(digits => Identifier((first :: digits).mkString))
     case _ => fail
   }
 
-  type TU = Grammar[Option[Char], Unit]
+  type TU = Grammar[Char, Unit]
 
   def comment: TU = for {
-    Some(';') <- read[Option[Char]]
-    _ <- read[Option[Char]].filter(option => !option.contains('\n') && !option.contains('\r')).zeroOrMore
+    ';' <- read[Char]
+    _ <- read[Char].filterNot(Set('\n', '\r').contains).zeroOrMore
   } yield ()
 
-  def space: TU = read[Option[Char]].collect[Unit] { case Some(c) if Character.isWhitespace(c) => () }
+  def space: TU = read[Char].filter(isWhitespace).map(_ => ())
 
   def separator: TU = (space or comment).zeroOrMore.map(_ => ())
 }

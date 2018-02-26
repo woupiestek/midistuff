@@ -40,8 +40,9 @@ object Rule {
       f(rules)
     }
 
-    def flatMap[O2](f: O => Grammar[I, O2]): Grammar[I, O2] =
-      Grammar(foldList(f(_).rules, (g: I => List[Rule[I, O2]]) => List(Read(g))))
+    private def bindList[O2](f: O => List[Rule[I, O2]]): List[Rule[I, O2]] = foldList(f, (g: I => List[Rule[I, O2]]) => List(Read(g)))
+
+    def flatMap[O2](f: O => Grammar[I, O2]): Grammar[I, O2] = Grammar(bindList(f(_).rules))
 
     def map[O2](f: O => O2): Grammar[I, O2] = flatMap(f andThen write)
 
@@ -62,9 +63,14 @@ object Rule {
     def zeroOrOne: Grammar[I, Option[O]] = map[Option[O]](Some(_)) or write(None)
 
     def andThen[O2](next: Grammar[O, O2]): Grammar[I, O2] =
-      Grammar[I, O2](next.foldList[Rule[I, O2]](
-        (o: O2) => List(Write(o)),
-        (f: O => List[Rule[I, O2]]) => foldList(f, (g: I => List[Rule[I, O2]]) => List(Read(g)))))
+      Grammar[I, O2](next.foldList[Rule[I, O2]]((o: O2) => List(Write(o)), bindList))
+
+    def next(i: I) = Grammar(rules.flatMap {
+      case Read(g) => g(i)
+      case Write(_) => Nil
+    })
+
+    def done: List[O] = rules.collect { case Write(o) => o }
   }
 
 }
