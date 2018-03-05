@@ -17,26 +17,25 @@ trait Functions[I, T] {
 
 }
 
-trait Event[M] {
+trait Command[C] {
+  def noteOn: C
 
-  def noteOn(key: Int, velocity: Int): M
+  def noteOff: C
 
-  def noteOff(key: Int, velocity: Int): M
+  def keyPressure: C
 
-  def keyPressure(key: Int, pressure: Int): M
+  def channelPressure: C
 
-  def channelPressure(pressure: Int): M
+  def controlChange: C
 
-  def setControl(controller: Int, value: Int): M
+  def programChange: C
 
-  def setProgram(program: Int): M
-
-  def setPitchWheel(pos0: Int, pos1: Int): M
+  def pitchWheelChange: C
 }
 
-trait Track[M, T] {
+trait Track[C, T] {
 
-  def single(tick: Int, channel: Int, message: M): T
+  def single(command: C, channel: Int, arg0: Int, arg1: Int, tick: Int): T
 
   def empty: T
 
