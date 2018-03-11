@@ -1,9 +1,10 @@
 package nl.woupiestek.midi
 
 import java.io.File
+
 import javax.sound.midi.MidiSystem.getSynthesizer
 import javax.sound.midi._
-
+import nl.woupiestek.midi.OtherSynthesizerWrapper.MessageInstance
 import nl.woupiestek.midi.lispy.Loader
 
 import scala.util.Random
@@ -36,6 +37,6 @@ object Main extends App {
   }
 
   def playRandom(count: Int): Unit =
-    new OtherSynthesizerWrapper(getSynthesizer).play(randomTestSounds(count)(OtherSynthesizerWrapper.messageInstance))
+    new OtherSynthesizerWrapper(getSynthesizer).play(randomTestSounds(count)(MessageInstance))
 
 }

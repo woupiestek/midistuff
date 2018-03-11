@@ -15,29 +15,26 @@ object MValue {
 
   case object Error extends MValue
 
-  implicit object Instance extends SExpression[MValue] {
-    override def atom(value: String): MValue = Atom(value)
+  def atom(value: String): MValue = Atom(value)
 
-    override def string(h: String): MValue = Error
+  def string(h: String): MValue = Error
 
-    override def number(i: Int): MValue = if ((0 to 127).contains(i)) Byte(i) else Error
+  def number(i: Int): MValue = if ((0 to 127).contains(i)) Byte(i) else Error
 
-    private val binary: Map[String, Int] = Map(
-      "on" -> NOTE_ON,
-      "off" -> NOTE_OFF,
-      "poly" -> POLY_PRESSURE,
-      "ctrl" -> CONTROL_CHANGE,
-      "bend" -> PITCH_BEND,
-      "cp" -> CHANNEL_PRESSURE,
-      "prog" -> PROGRAM_CHANGE)
+  private val binary: Map[String, Int] = Map(
+    "on" -> NOTE_ON,
+    "off" -> NOTE_OFF,
+    "poly" -> POLY_PRESSURE,
+    "ctrl" -> CONTROL_CHANGE,
+    "bend" -> PITCH_BEND,
+    "cp" -> CHANNEL_PRESSURE,
+    "prog" -> PROGRAM_CHANGE)
 
-    override def list(s: List[MValue]): MValue = s match {
-      case Atom(x) :: Byte(key) :: Byte(velocity) :: Byte(channel) :: Byte(tick) :: Nil if binary.contains(x) =>
-        Track(Set(new MidiEvent(new ShortMessage(binary(x), channel, key, velocity), tick)))
-      case Atom("join") :: t =>
-        Track(t.collect { case Track(events) => events }.toSet.flatten)
-      case _ => Error
-    }
+  def list(s: List[MValue]): MValue = s match {
+    case Atom(x) :: Byte(channel) :: Byte(arg0) :: Byte(arg1) :: Byte(tick) :: Nil if binary.contains(x) =>
+      Track(Set(new MidiEvent(new ShortMessage(binary(x), channel, arg0, arg1), tick)))
+    case Atom("join") :: t =>
+      Track(t.collect { case Track(events) => events }.toSet.flatten)
+    case _ => Error
   }
-
 }
