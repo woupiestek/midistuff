@@ -18,6 +18,8 @@ object Rule {
 
   def fail[I, O]: Grammar[I, O] = Grammar(Nil)
 
+  def fixPoint[I, O](f: => Grammar[I, O] => Grammar[I, O]): Grammar[I, O] = f(fixPoint(f))
+
   case class Grammar[I, O](rules: List[Rule[I, O]]) {
     def fold[Z](onWrite: O => Z, onRead: (I => Z) => Z)(implicit Z: Monoid[Z]): Z = {
       def start(rs: List[Rule[I, O]]) = helper(rs, Z.zero)
@@ -43,6 +45,12 @@ object Rule {
     private def bindList[O2](f: O => List[Rule[I, O2]]): List[Rule[I, O2]] = foldList(f, (g: I => List[Rule[I, O2]]) => List(Read(g)))
 
     def flatMap[O2](f: O => Grammar[I, O2]): Grammar[I, O2] = Grammar(bindList(f(_).rules))
+
+    def ~[O2, O3](other: Grammar[I, O2])(f: (O, O2) => O3): Grammar[I, O3] = flatMap(x => other.map(f(x, _)))
+
+    def <~[O2](other: Grammar[I, O2]): Grammar[I, O] = flatMap(x => other.map(_ => x))
+
+    def ~>[O2](other: Grammar[I, O2]): Grammar[I, O2] = flatMap(_ => other)
 
     def map[O2](f: O => O2): Grammar[I, O2] = flatMap(f andThen write)
 
