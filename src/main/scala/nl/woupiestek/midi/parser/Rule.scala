@@ -54,6 +54,8 @@ object Rule {
 
     def map[O2](f: O => O2): Grammar[I, O2] = flatMap(f andThen write)
 
+    def discard: Grammar[I, Unit] = map(_ => ())
+
     def collect[O2](f: PartialFunction[O, O2]): Grammar[I, O2] = flatMap((o: O) => if (f.isDefinedAt(o)) write(f(o)) else fail)
 
     def filter(f: O => Boolean): Grammar[I, O] = flatMap((o: O) => if (f(o)) write(o) else fail)

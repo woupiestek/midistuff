@@ -21,7 +21,5 @@ object Variables {
       q <- n
     } yield put(x, p, q)
 
-  private def put[T, V, I](x: V, p: D[V, T], q: D[V, T])(y: Map[V, T]): Option[T] = {
-    p(y).flatMap(z => q(y + (x -> z)))
-  }
+  private def put[T, V, I](x: V, p: D[V, T], q: D[V, T])(y: Map[V, T]): Option[T] = p(y).flatMap(z => q(y + (x -> z)))
 }
