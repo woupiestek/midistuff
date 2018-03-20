@@ -1,11 +1,13 @@
 package nl.woupiestek.midi.language
 
-import javax.sound.midi.ShortMessage._
 import javax.sound.midi.{ MidiEvent, ShortMessage }
+import javax.sound.midi.ShortMessage._
 
 sealed trait MValue
 
 object MValue {
+
+  case class MList(values: List[MValue]) extends MValue
 
   case class Byte(int: Int) extends MValue
 
@@ -13,13 +15,9 @@ object MValue {
 
   case class Track(events: Set[MidiEvent]) extends MValue
 
+  case class Closure(variable: String, body: MValue, heap: Map[String, MValue]) extends MValue
+
   case object Error extends MValue
-
-  def atom(value: String): MValue = Atom(value)
-
-  def string(h: String): MValue = Error
-
-  def number(i: Int): MValue = if ((0 to 127).contains(i)) Byte(i) else Error
 
   private val binary: Map[String, Int] = Map(
     "on" -> NOTE_ON,
@@ -30,11 +28,32 @@ object MValue {
     "cp" -> CHANNEL_PRESSURE,
     "prog" -> PROGRAM_CHANGE)
 
-  def list(s: List[MValue]): MValue = s match {
-    case Atom(x) :: Byte(channel) :: Byte(arg0) :: Byte(arg1) :: Byte(tick) :: Nil if binary.contains(x) =>
-      Track(Set(new MidiEvent(new ShortMessage(binary(x), channel, arg0, arg1), tick)))
-    case Atom("join") :: t =>
-      Track(t.collect { case Track(events) => events }.toSet.flatten)
-    case _ => Error
+  private val whyIsThisProblem: PartialFunction[MValue, Set[MidiEvent]] = {
+    case Track(t) => t
+  }
+
+  def evaluate(value: MValue, heap: Map[String, MValue], stack: List[MValue]): MValue = value match {
+    case MList(h :: t) => evaluate(h, heap, t.map(evaluate(_, heap, Nil)) ++ stack)
+    case Atom(":=") => stack match {
+      case Atom(x) :: y :: z :: rest => evaluate(z, heap + (x -> y), rest)
+      case _ => Error
+    }
+    case Atom("\\") => stack match {
+      case Atom(x) :: y :: z :: rest => evaluate(y, heap + (x -> z), rest)
+      case Atom(x) :: y :: Nil => Closure(x, y, heap - x)
+      case _ => Error
+    }
+    case Atom("#") => stack match {
+      case Atom(x) :: Byte(channel) :: Byte(arg0) :: Byte(arg1) :: Byte(tick) :: Nil if binary.contains(x) =>
+        Track(Set(new MidiEvent(new ShortMessage(binary(x), channel, arg0, arg1), tick)))
+      case _ => Error
+    }
+    case Atom("&") => Track(stack.toSet.collect(whyIsThisProblem).flatten)
+    case Atom(x) if heap.contains(x) => evaluate(heap(x), heap, stack)
+    case Closure(x, y, z) => stack match {
+      case h :: t => evaluate(y, heap ++ z + (x -> h), t)
+      case Nil => Closure(x, y, heap ++ z - x)
+    }
+    case x => x
   }
 }

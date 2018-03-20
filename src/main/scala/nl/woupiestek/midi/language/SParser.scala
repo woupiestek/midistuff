@@ -12,11 +12,6 @@ object SParser {
   val ignore: Grammar[Char, Unit] =
     (read[Char].filter(isWhitespace).discard or lispComment).zeroOrMore.discard
 
-  val jIdentifier: Grammar[Char, String] =
-    (read[Char].filter(isJavaIdentifierStart) ~
-      read[Char].filter(isJavaIdentifierPart).zeroOrMore)((a, b) => (a :: b).mkString) <~
-      ignore
-
   val string: Grammar[Char, String] = token('"') ~>
     fixPoint[Char, List[Char]](rest => read[Char].flatMap {
       case '"' => write(Nil)
@@ -26,14 +21,18 @@ object SParser {
 
   val number: Grammar[Char, Int] = read[Char].filter(('0' to '9').contains).oneOrMore.map(_.foldLeft(0)(10 * _ + _ - '0'))
 
+  private val operators = ('!' to '~').filterNot(isLetter).filterNot(Set(';', '(', ')', '"')).toSet
+
+  val atom: Grammar[Char, String] = read[Char].filter(operators).oneOrMore.map(_.toString()) <~ ignore
+
   def token(c: Char): Grammar[Char, Unit] = read[Char].flatMap(d => if (c == d) ignore else fail)
 
   def list[S](elt: Grammar[Char, S]): Grammar[Char, List[S]] = token('(') ~> elt.zeroOrMore <~ token(')')
 
-  def lisp[S](atom: Grammar[Char, S])(implicit sList: List[S] => S): Grammar[Char, S] =
-    list(lisp(atom)).map(sList) or atom
+  def lisp[S](atom: Grammar[Char, S])(sList: List[S] => S): Grammar[Char, S] =
+    list(lisp(atom)(sList)).map(sList) or atom
 
-  def unit[S](implicit sAtom: String => S, sString: String => S, sNumber: Int => S, sList: List[S] => S): Grammar[Char, S] =
-    lisp(jIdentifier.map(sAtom) or number.map(sNumber) or string.map(sString))
+  def unit[S](sAtom: String => S, sString: String => S, sNumber: Int => S, sList: List[S] => S): Grammar[Char, S] =
+    lisp(atom.map(sAtom) or number.map(sNumber) or string.map(sString))(sList)
 }
 
