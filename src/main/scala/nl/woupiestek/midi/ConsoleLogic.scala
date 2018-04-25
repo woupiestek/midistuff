@@ -31,7 +31,7 @@ object ConsoleLogic {
       }
     }
 
-    StringParser.parse(input, Tokenizer.token andThen Parser.track) match {
+    StringParser.parse(input.trim, Tokenizer.token andThen Parser.track) match {
       case None =>
         println("couldn't parse: " + input)
         context
@@ -69,7 +69,6 @@ class MidiPlayer extends Player {
     Loader.write(track, s.createTrack())
     sequencer.setSequence(s)
     sequencer.start()
-    while (sequencer.isRunning) Thread.`yield`()
   }
 
   override def close(): Unit = sequencer.close()
