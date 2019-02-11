@@ -3,7 +3,7 @@ package nl.woupiestek.midi
 import javax.sound.midi._
 
 object OtherSynthesizerWrapper {
-  implicit object MessageInstance extends MidiMessage[Synthesizer => Unit] {
+  implicit object MessageInstance extends MidiMessages[Synthesizer => Unit] {
 
     override def noteOn(channel: Int, pitch: Int, velocity: Int): (Synthesizer) => Unit =
       get(channel) andThen (_.noteOn(pitch, velocity))

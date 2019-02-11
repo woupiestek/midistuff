@@ -45,7 +45,7 @@ object MValue {
     }
     case Atom("#") => stack match {
       case Atom(x) :: Number(channel) :: Number(arg0) :: Number(arg1) :: Number(tick) :: Nil if binary.contains(x) =>
-        Track(Set(new MidiEvent(new ShortMessage(binary(x), channel % 16, arg0 % 128, arg1 % 128), tick)))
+        Track(Set(new MidiEvent(new ShortMessage(binary(x), channel % 16, arg0 % 128, arg1 % 128), tick.toLong)))
       case _ => Error
     }
     case Atom("&") => Track(stack.toSet.collect(whyIsThisProblem).flatten)

@@ -2,19 +2,25 @@ package nl.woupiestek.midi
 
 import javax.sound.midi.MidiSystem.getSequencer
 import javax.sound.midi._
+import scalaz._
+import Scalaz._
 
-import nl.woupiestek.midi.lispy.Parser.{ Get, Play, Put, Result }
-import nl.woupiestek.midi.lispy.{ Loader, Parser, Tokenizer, Track }
-import nl.woupiestek.midi.parser.StringParser
+import nl.woupiestek.midi.lispy.LParser.{ Get, Play, Put, Result }
+import nl.woupiestek.midi.lispy.{ Loader, LParser, Track }
 
 import scala.annotation.tailrec
 import scala.io.StdIn
 
 object ConsoleLogic {
 
-  def next(input: String, context: Map[String, Track], player: Player): Map[String, Track] = {
+  def next(
+    input: String,
+    context: Map[String, Track],
+    player: Player): Map[String, Track] = {
 
-    @tailrec def processResult(result: Result, context: Map[String, Track]): Map[String, Track] = {
+    @tailrec def processResult(
+      result: Result,
+      context: Map[String, Track]): Map[String, Track] = {
       result match {
         case Get(key, continuation) =>
           context.get(key) match {
@@ -31,7 +37,7 @@ object ConsoleLogic {
       }
     }
 
-    StringParser.parse(input.trim, Tokenizer.token andThen Parser.track) match {
+    LParser.track.parse[Option, List, Char, Result](input.trim.toList) match {
       case None =>
         println("couldn't parse: " + input)
         context
@@ -62,7 +68,8 @@ trait Player extends AutoCloseable {
 class MidiPlayer extends Player {
   val sequencer: Sequencer = getSequencer
   sequencer.open()
-  sequencer.addMetaEventListener((event: MetaMessage) => if (event.getType == 47) sequencer.stop())
+  sequencer.addMetaEventListener(
+    (event: MetaMessage) => if (event.getType == 47) sequencer.stop())
 
   override def play(track: Track): Unit = {
     val s = new Sequence(Sequence.PPQ, 24)
@@ -73,4 +80,3 @@ class MidiPlayer extends Player {
 
   override def close(): Unit = sequencer.close()
 }
-

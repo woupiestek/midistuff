@@ -1,9 +1,10 @@
 package nl.woupiestek.midi.lispy
 
-import nl.woupiestek.midi.parser.StringParser
-import nl.woupiestek.midi.{ ConsoleLogic, Player, lispy }
+import nl.woupiestek.midi.parser.Parser
+import nl.woupiestek.midi.{ ConsoleLogic, Player }
 import org.scalatest.FunSuite
-
+import scalaz._
+import Scalaz._
 import scala.io.Source
 
 class LoaderTest extends FunSuite {
@@ -14,9 +15,11 @@ class LoaderTest extends FunSuite {
     assert(Loader.load("testLispy.txt").nonEmpty)
   }
 
+  def parse[X](parser: Parser[Char, X], input: String): Option[X] =
+    parser.parse[Option, List, Char, X](input.toList)
+
   test("look around") {
-    val x = StringParser.parse(input, lispy.Parser.file)
-    assert(x.nonEmpty)
+    assert(parse(LParser.file, input).nonEmpty)
   }
 
   val w: String =
@@ -41,16 +44,10 @@ class LoaderTest extends FunSuite {
   }
 
   test("other steps") {
-    val fails = List(
-      ("-123", Number(-123)),
-      ("john", Identifier("john")),
-      ("[", BeginList),
-      ("]", EndList)).map {
-        case (string, token) => (StringParser.parse(string, Tokenizer.token), token)
-      }.filterNot {
-        case (option, token) => option.contains(token)
-      }
-    assert(fails.isEmpty)
+    assert(parse(LParser.number, "-123").contains(-123))
+    assert(parse(LParser.identifier, "john").contains("john"))
+    assert(parse(LParser.beginList, "[").nonEmpty)
+    assert(parse(LParser.endList, "]").nonEmpty)
   }
 
 }

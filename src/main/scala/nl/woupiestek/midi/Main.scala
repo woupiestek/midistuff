@@ -18,7 +18,7 @@ object Main extends App {
     sequence <- Loader.load(arg)
   } MidiSystem.write(sequence, 0, new File(s"$arg.mid"))
 
-  private def randomTestSounds[M](count: Int)(implicit M: MidiMessage[M]) = {
+  private def randomTestSounds[M](count: Int)(implicit M: MidiMessages[M]) = {
     val random = new Random()
     val program = for (i <- 0 to 15) yield (0, M.setProgram(i, random.nextInt(128)))
 

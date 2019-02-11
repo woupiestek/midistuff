@@ -1,72 +1,68 @@
 package nl.woupiestek.midi.tagless
 
-import nl.woupiestek.midi.parser.Rule._
+import java.lang.Character._
+import scalaz._
+import Scalaz._
+import nl.woupiestek.midi.parser.Parser
+import nl.woupiestek.midi.parser.Parser._
 
 trait Tokenizer[T] {
-  def number: Grammar[T, Int]
+  def number: Parser[T, Int]
 
-  def identifier: Grammar[T, String]
+  def identifier: Parser[T, String]
 
-  def beginList: Grammar[T, Unit]
+  def keyword(name: String): Parser[T, Unit]
 
-  def endList: Grammar[T, Unit]
+  def beginList: Parser[T, Unit]
 
-  def beginFile: Grammar[T, Unit]
+  def endList: Parser[T, Unit]
 
-  def endFile: Grammar[T, Unit]
+  def beginFile: Parser[T, Unit]
+
+  def endFile: Parser[T, Unit]
 }
 
-object StringTokenizer extends Tokenizer[Option[Char]] {
+object StringTokenizer extends Tokenizer[Char] {
 
-  override def number: Grammar[Option[Char], Int] = separate {
-    read[Option[Char]].flatMap {
-      case Some('-') =>
-        read[Option[Char]].collect { case Some(x) if Character.isDigit(x) => x }
-          .oneOrMore
-          .map(digits => -digits.mkString.toInt)
-      case Some(first) if ('0' to '9').contains(first) =>
-        read[Option[Char]].collect {
-          case Some(c) if ('0' to '9').contains(c) => c
-        }.zeroOrMore.map {
-          digits => (first :: digits).mkString.toInt
-        }
-      case _ => fail
-    }
+  private type G[T] = Parser[Char, T]
+  val space: G[Unit] = If(isWhitespace(_: Char)).scanMap(_ => ())
+
+  val comment: G[Unit] =
+    is(';') *> If((c: Char) => c != '\n' && c != '\r').scanMap(_ => ())
+
+  val separator: G[Unit] = (space <+> comment).list.map(_ => ())
+
+  override val beginList: G[Unit] = token('[')
+
+  override val endList: G[Unit] = token(']')
+
+  override val beginFile: G[Unit] = keyword("midistuff-file-version-0.1")
+
+  override val endFile: G[Unit] = ().point[G]
+  private val reserved = Set('[', ']', ';', ' ', '\n', '\r', '\t', '\f')
+
+  override val number: G[Int] = {
+
+    val digits = If(isDigit(_: Char))
+      .scanMap(c => List(c))
+      .map(_.mkString.toInt) <* space
+
+    is('-') *> digits.map(-_) <+> digits
+
   }
 
-  override def identifier: Grammar[Option[Char], String] = separate {
-    read[Option[Char]].flatMap {
-      case Some(x) if Character.isAlphabetic(x) => for {
-        digits <- read[Option[Char]].collect {
-          case Some(c) if !reserved.contains(c) => c
-        }.zeroOrMore
-      } yield (x :: digits).mkString
-    }
+  override val identifier: G[String] =
+    (If(isLetter(_: Char)).one |@|
+      If((c: Char) => !reserved.contains(c)).one.list)(_ :: _)
+      .map(_.toList.mkString) <* space
+
+  override def keyword(word: String): G[Unit] = {
+    implicit val monoid: Monoid[G[Unit]] = ApplicativePlus[G].monoid[Unit]
+    word.toList.foldMap(is) <* space
   }
 
-  override def beginList: Grammar[Option[Char], Unit] = separate(read.collect { case Some('[') => () })
+  private def token(c: Char): G[Unit] = is(c) <* space
 
-  override def endList: Grammar[Option[Char], Unit] = separate(read.collect { case Some(']') => () })
+  private def is(c: Char) = If((_: Char) == c).one.map(_ => ())
 
-  override def beginFile: Grammar[Option[Char], Unit] = identifier.collect { case "midistuff-file-version-0.1" => () }
-
-  override def endFile: Grammar[Option[Char], Unit] = separate(read.collect { case None => () })
-
-  private type G[T] = Grammar[Option[Char], T]
-
-  private def reserved = Set('[', ']', ';', ' ', '\n', '\r', '\t', '\f')
-
-  def comment: G[Unit] = for {
-    _ <- read[Option[Char]].filter(_.forall(';'.equals))
-    _ <- read[Option[Char]].filter(_.forall(Set('\n', '\r').contains)).zeroOrMore
-  } yield ()
-
-  def space: G[Unit] = read[Option[Char]].filter(_.forall(Character.isWhitespace)).map(_ => ())
-
-  def separator: G[Unit] = (space or comment).zeroOrMore.map(_ => ())
-
-  def separate[T](x: G[T]): G[T] = for {
-    y <- x
-    _ <- separator
-  } yield y
 }

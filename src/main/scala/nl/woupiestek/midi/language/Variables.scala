@@ -1,25 +1,28 @@
 package nl.woupiestek.midi.language
 
 import nl.woupiestek.midi.language.SParser.token
-import nl.woupiestek.midi.parser.Rule.Grammar
+import scalaz._
+import Scalaz._
+import nl.woupiestek.midi.parser.Parser
+import nl.woupiestek.midi.parser.Parser._
 
 object Variables {
 
   type D[V, T] = Map[V, T] => Option[T]
 
-  def variables[V, T](v: Grammar[Char, V]): Grammar[Char, D[V, T]] = v.map(get)
+  def variables[V, T](v: Parser[Char, V]): Parser[Char, D[V, T]] = v.map(get)
 
   private def get[V, T](x: V)(y: Map[V, T]): Option[T] = y.get(x)
 
-  def let[V, T](v: Grammar[Char, V], m: Grammar[Char, D[V, T]], n: Grammar[Char, D[V, T]]): Grammar[Char, D[V, T]] =
-    for {
-      _ <- token('[')
-      x <- v
-      _ <- token('=')
-      p <- m
-      _ <- token(']')
-      q <- n
-    } yield put(x, p, q)
+  def let[V, T](
+    v: Parser[Char, V],
+    m: Parser[Char, D[V, T]],
+    n: Parser[Char, D[V, T]]): Parser[Char, D[V, T]] =
+    ((token('[') *> v <* token('=')) |@| m <* token(']') |@| n)(put)
 
-  private def put[T, V, I](x: V, p: D[V, T], q: D[V, T])(y: Map[V, T]): Option[T] = p(y).flatMap(z => q(y + (x -> z)))
+  private def put[T, V, I](
+    x: V,
+    p: D[V, T],
+    q: D[V, T]): Map[V, T] => Option[T] =
+    (y: Map[V, T]) => p(y).flatMap(z => q(y + (x -> z)))
 }

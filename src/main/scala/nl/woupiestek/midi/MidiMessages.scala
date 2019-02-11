@@ -1,6 +1,6 @@
 package nl.woupiestek.midi
 
-trait MidiMessage[M] {
+trait MidiMessages[M] {
 
   def noteOn(channel: Int, pitch: Int, velocity: Int): M
 

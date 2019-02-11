@@ -1,38 +1,47 @@
 package nl.woupiestek.midi.language
 
 import java.lang.Character._
-
-import nl.woupiestek.midi.parser.Rule._
+import scalaz._
+import Scalaz._
+import nl.woupiestek.midi.parser.Parser
+import nl.woupiestek.midi.parser.Parser._
 
 object SParser {
 
-  val lispComment: Grammar[Char, Unit] =
-    token(';') ~> fixPoint[Char, Unit](x => read[Char].map(c => if (c == '\n' || c == '\r') write(()) else x))
+  val lispComment: Parser[Char, Unit] =
+    token(';') *> If((c: Char) => c != '\n' && c != '\r').scanMap(_ => ())
 
-  val ignore: Grammar[Char, Unit] =
-    (read[Char].filter(isWhitespace).discard or lispComment).zeroOrMore.discard
+  val ignore: Parser[Char, Unit] =
+    If(isWhitespace(_: Char)).scanMap(_ => ()) <+> lispComment
 
-  val string: Grammar[Char, String] = token('"') ~>
-    fixPoint[Char, List[Char]](rest => read[Char].flatMap {
-      case '"' => write(Nil)
-      case '\\' => read[Char].flatMap(h => rest.map(h :: _))
-      case h => rest.map(h :: _)
-    }).map(_.mkString)
+  private val stringChar: Parser[Char, Char] =
+    If((x: Char) => x != '"' && x != '\\').one <+>
+      (If((x: Char) => x == '\\').one *> If((_: Char) => true).one)
 
-  val number: Grammar[Char, Int] = read[Char].filter(('0' to '9').contains).oneOrMore.map(_.foldLeft(0)(10 * _ + _ - '0'))
+  val string: Parser[Char, String] =
+    (token('"') *> stringChar.list <* token('"')).map(_.toList.mkString)
 
-  private val operators = ('!' to '~').filterNot(isLetter).filterNot(Set(';', '(', ')', '"')).toSet
+  val number: Parser[Char, Int] = If(('0' to '9').contains(_: Char)).one.nel
+    .map(_.foldLeft(0)((x: Int, y: Char) => 10 * x + y - '0'))
 
-  val atom: Grammar[Char, String] = read[Char].filter(operators).oneOrMore.map(_.toString()) <~ ignore
+  private val operators: Set[Char] =
+    ('!' to '~').filterNot(isLetter).filterNot(Set(';', '(', ')', '"')).toSet
 
-  def token(c: Char): Grammar[Char, Unit] = read[Char].flatMap(d => if (c == d) ignore else fail)
+  val atom: Parser[Char, String] = If(operators.contains(_: Char)).one.nel
+    .map(_.toList.mkString) <* ignore
 
-  def list[S](elt: Grammar[Char, S]): Grammar[Char, List[S]] = token('(') ~> elt.zeroOrMore <~ token(')')
+  def token(c: Char): Parser[Char, Char] = If((_: Char) == c).one
 
-  def lisp[S](atom: Grammar[Char, S])(sList: List[S] => S): Grammar[Char, S] =
-    list(lisp(atom)(sList)).map(sList) or atom
+  def list[S](elt: Parser[Char, S]): Parser[Char, IList[S]] =
+    token('(') *> elt.list <* token(')')
 
-  def unit[S](sAtom: String => S, sString: String => S, sNumber: Int => S, sList: List[S] => S): Grammar[Char, S] =
-    lisp(atom.map(sAtom) or number.map(sNumber) or string.map(sString))(sList)
+  def lisp[S](atom: Parser[Char, S])(sList: IList[S] => S): Parser[Char, S] =
+    list(lisp(atom)(sList)).map(sList) <+> atom
+
+  def unit[S](
+    sAtom: String => S,
+    sString: String => S,
+    sNumber: Int => S,
+    sList: IList[S] => S): Parser[Char, S] =
+    lisp(atom.map(sAtom) <+> number.map(sNumber) <+> string.map(sString))(sList)
 }
-

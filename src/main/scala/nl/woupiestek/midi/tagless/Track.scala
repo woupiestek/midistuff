@@ -24,18 +24,15 @@ object Track {
   def gained(m: MidiMessage, gain: Int): MidiMessage = {
     if ((m.getStatus & 0xF0) == NOTE_ON) {
       val Array(status, key, velocity) = m.getMessage
-      new ShortMessage(NOTE_ON, status & 0x0F, key, velocity + gain)
+      new ShortMessage(NOTE_ON, status & 0x0F, key.toInt, velocity + gain)
     } else m
   }
 
-  def transposed(m: MidiMessage, d: Int): MidiMessage = m.getStatus & 0xF0 match {
-    case NOTE_ON =>
-      val Array(status, key, velocity) = m.getMessage
-      new ShortMessage(NOTE_ON, status & 0x0F, key + d, velocity)
-    case NOTE_OFF =>
-      val Array(status, key) = m.getMessage
-      new ShortMessage(NOTE_OFF, status & 0x0F, key + d)
-    case _ => m
-  }
+  def transposed(m: MidiMessage, d: Int): MidiMessage =
+    m.getStatus & 0xF0 match {
+      case NOTE_ON | NOTE_OFF =>
+        val Array(status, key, velocity) = m.getMessage
+        new ShortMessage(status.toInt, key + d, velocity.toInt)
+      case _ => m
+    }
 }
-
