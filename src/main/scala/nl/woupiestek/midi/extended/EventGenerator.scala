@@ -6,6 +6,8 @@ import nl.woupiestek.midi.extended
 import scalaz._
 import Scalaz._
 import scala.io.Source
+import nl.woupiestek.midi.parser.LazyMaybe
+import nl.woupiestek.midi.parser.LazyMaybe._
 
 final case class EventGenerator(
   start: Int,
@@ -46,15 +48,14 @@ object EventGenerator {
 
   def load(name: String): Option[Sequence] = {
     val input = Source.fromFile(name).getLines().mkString("\n")
-    extended.EGrammar.sequence.parse[Option, List, Char, ESequence](
-      input.toList) match {
-        case None =>
-          println(s"parsing $name failed")
-          None
-        case Some(eSequence) =>
-          println(s"parsing $name succeeded")
-          println(eSequence)
-          Some(toMidi(eSequence))
+    extended.EGrammar.sequence.parse[LazyMaybe, List, Char, ESequence](
+      input.toList).fold[Option[Sequence]] {
+        println(s"parsing $name failed")
+        None
+      } { eSequence =>
+        println(s"parsing $name succeeded")
+        println(eSequence)
+        Some(toMidi(eSequence))
       }
   }
 

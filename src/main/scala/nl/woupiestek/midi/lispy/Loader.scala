@@ -7,7 +7,8 @@ import scalaz._
 import Scalaz._
 import nl.woupiestek.midi.lispy
 import nl.woupiestek.midi.lispy.LParser.{ Get, Play, Put, Result }
-
+import nl.woupiestek.midi.parser.LazyMaybe
+import nl.woupiestek.midi.parser.LazyMaybe._
 import scala.annotation.tailrec
 import scala.io.Source
 
@@ -49,14 +50,19 @@ object Loader {
 
   def load(name: String): Option[Sequence] = {
     val input = Source.fromFile(name).getLines().mkString
-    for {
-      result <- LParser.file.parse[Option, List, Char, Result](input.toList)
-      track <- extract(result, Map.empty)
-    } yield {
-      val s = new Sequence(PPQ, 24)
-      write(track, s.createTrack())
-      s
-    }
+
+    LParser.track
+      .parse[LazyMaybe, List, Char, Result](input.toList)
+      .fold[Option[Sequence]] {
+        None
+      } { result =>
+        extract(result, Map.empty).map { track =>
+          val s = new Sequence(PPQ, 24)
+          write(track, s.createTrack())
+          s
+        }
+      }
+
   }
 
 }

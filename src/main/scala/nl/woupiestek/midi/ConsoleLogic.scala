@@ -4,7 +4,8 @@ import javax.sound.midi.MidiSystem.getSequencer
 import javax.sound.midi._
 import scalaz._
 import Scalaz._
-
+import nl.woupiestek.midi.parser.LazyMaybe
+import nl.woupiestek.midi.parser.LazyMaybe._
 import nl.woupiestek.midi.lispy.LParser.{ Get, Play, Put, Result }
 import nl.woupiestek.midi.lispy.{ Loader, LParser, Track }
 
@@ -37,12 +38,11 @@ object ConsoleLogic {
       }
     }
 
-    LParser.track.parse[Option, List, Char, Result](input.trim.toList) match {
-      case None =>
-        println("couldn't parse: " + input)
-        context
-      case Some(result) => processResult(result, context)
-    }
+    LParser.track.parse[LazyMaybe, List, Char, Result](input.trim.toList).fold {
+      println("couldn't parse: " + input)
+      context
+    }(processResult(_, context))
+
   }
 
   def start(): Unit = {
